@@ -118,10 +118,39 @@ pub mod crowdfunding {
     }
 
     //admin function
-    // pub fn modifyRounds(){
+    pub fn modify_rounds(ctx: Context<Modifier>, name_list : Vec<String>, duration_list: Vec<u32>, class_list: Vec<RoundClass>, tiers: u64)-> ProgramResult{
+        let ido_account = &mut ctx.accounts.ido_info;
+        let user = &mut ctx.accounts.user;
+        //check owner
+        if ido_account._owner != *user.key {
+            return Err(ProgramError::InvalidAccountOwner);
+        }
+        //check name_list
+        if name_list.is_empty() {
+            return Err(ProgramError::InvalidArgument);
+        }
+        //check size
+        if name_list.len() != duration_list.len() || name_list.len() != class_list.len() {
+            return Err(ProgramError::InvalidArgument);
+        }
+        //delete round
+        ido_account._rounds = vec![];
 
-    // }
-    pub fn modify_round(ctx: Context<ModifyTier>, index: u16, name: String, duration_seconds: u32, class: RoundClass)-> ProgramResult{
+        //push round into ido_account._rounds
+        for (i, name) in name_list.iter().enumerate() {
+            ido_account._rounds.push(RoundItem {
+                name: name.to_string(),
+                duration_seconds: duration_list[i],
+                class: class_list[i].clone(),
+                tier_allocations: vec![tiers],
+                participated: vec![],
+            });
+        }
+        Ok(())
+    }
+
+
+    pub fn modify_round(ctx: Context<Modifier>, index: u16, name: String, duration_seconds: u32, class: RoundClass)-> ProgramResult{
         let ido_account = &mut ctx.accounts.ido_info;
         let user = &mut ctx.accounts.user;
 
@@ -159,8 +188,8 @@ pub mod crowdfunding {
 
         Ok(())
     }
-    
-    pub fn modify_tier(ctx: Context<ModifyTier>, index: u16, name: String) -> ProgramResult {
+
+    pub fn modify_tier(ctx: Context<Modifier>, index: u16, name: String) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
         let user = &mut ctx.accounts.user;
         //check owner
@@ -178,7 +207,7 @@ pub mod crowdfunding {
         Ok(())
     }
 
-    pub fn modify_tiers(ctx: Context<Modify>, name_list : Vec<String> ) -> ProgramResult{
+    pub fn modify_tiers(ctx: Context<Modifier>, name_list : Vec<String> ) -> ProgramResult{
         let ido_account = &mut ctx.accounts.ido_info;
         let user = &mut ctx.accounts.user;
 
@@ -209,7 +238,7 @@ pub mod crowdfunding {
      * them hoac remove address vao allocation cua tier
      */
     pub fn modify_tier_allocated(
-        ctx: Context<ModifyTier>,
+        ctx: Context<Modifier>,
         index: u16,
         addresses: Vec<String>,
         remove: bool,
@@ -365,7 +394,7 @@ pub struct IdoAccountInfo {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub enum RoundClass {
-    Allocation,
+    Allocation ,
     FcfsPrepare,
     Fcfs,
 }
@@ -455,7 +484,7 @@ pub struct  SetupReleases<'info>{
     pub system_program: Program<'info, System>,
 }
 #[derive(Accounts)]
-pub struct  Modify<'info>{
+pub struct  Modifier<'info>{
     #[account(mut)]
     pub ido_info: Account<'info, IdoAccountInfo>,
 

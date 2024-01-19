@@ -46,6 +46,68 @@ describe("crowd funding testing", () => {
 
   });
 
+
+  // it("modify_rounds", async () => {
+  //   if(!idoAccount) return;
+  //   const index = 0;
+  //   const name = "Test round1";
+  //   const durationSeconds = 600;
+
+  
+
+  //   //check lai logic cho round class
+  //  const _class = {fcfsPrepare:{}}
+
+   
+  //   //test setupReleaseToken  -> OK
+  //   await program.rpc.modifyRound(index, name,durationSeconds , _class, {
+  //    accounts: {
+  //      idoInfo: idoAccount.publicKey,
+  //      user: provider.wallet.publicKey,
+  //      systemProgram: anchor.web3.SystemProgram.programId,
+  //    }
+  //  });  
+  //  const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
+  //  const round = idoInfo.rounds[index];
+
+  //  console.log(round);
+   
+  //   assert.equal(round.name, name, "modify round name");
+ 
+  //   assert.equal(round.durationSeconds, durationSeconds, "modify duration");
+  //   // assert.equal(round.class, _class, "modify class");
+  // });
+
+  it("modify_round", async () => {
+    if(!idoAccount) return;
+    const index = 0;
+    const name = "Test round1";
+    const durationSeconds = 600;
+
+  
+
+    //check lai logic cho round class
+   const _class = {fcfsPrepare:{}}
+
+   
+    //test setupReleaseToken  -> OK
+    await program.rpc.modifyRound(index, name,durationSeconds , _class, {
+     accounts: {
+       idoInfo: idoAccount.publicKey,
+       user: provider.wallet.publicKey,
+       systemProgram: anchor.web3.SystemProgram.programId,
+     }
+   });  
+   const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
+   const round = idoInfo.rounds[index];
+
+   
+    assert.equal(round.name, name, "modify round name");
+ 
+    assert.equal(round.durationSeconds, durationSeconds, "modify duration");
+    // assert.equal(round.class, _class, "modify class");
+  });
+
   it("setup release token", async () => {
     if(!idoAccount) return;
     const token = "GdgCpzyFdcZqvtwyX1phzNH8Q32vcNk47AqrZTSsciLs";
@@ -71,7 +133,7 @@ describe("crowd funding testing", () => {
   it("modify_round_allocations", async () => {
     if(!idoAccount) return;
     const index = 1;
-    const tierAllocations = [];
+    const tierAllocations = [new BN(0.1 * LAMPORTS_PER_SOL), new BN(0.02 * LAMPORTS_PER_SOL) ];
    
     //test setupReleaseToken  -> OK
     await program.rpc.modifyRoundAllocations(index, tierAllocations, {
@@ -82,7 +144,11 @@ describe("crowd funding testing", () => {
      }
    });  
    const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
-  
+   const  roundAllocations = idoInfo.rounds[index].tierAllocations;
+   for (let i = 0; i < roundAllocations.length; i++) {
+      const tierAl = roundAllocations[i];
+      assert.equal(tierAl.toString(), tierAllocations[i].toString(), "tier allocation is amount setup");
+   }
 
   });
 
@@ -206,7 +272,6 @@ describe("crowd funding testing", () => {
 
   const getInfoIdoAccount = async (program: any, idoAccountAddress: String)=>{
     const idoAccountPub  = new PublicKey(idoAccountAddress)
-    //ignore
     let ido_info = await program.account.idoAccountInfo.fetch(idoAccountPub);
     return ido_info
 }

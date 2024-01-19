@@ -37,52 +37,57 @@ pub mod crowdfunding {
 
         //add tier
         ido_account._tiers.push(TierItem {
-            name: "Lottery Winners".to_string(),
+            name: String:: from("Lottery Winners"),
             allocated: vec![],
             allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
-            name: "Top 100".to_string(),
+            name: String:: from("Top 100"),
             allocated: vec![],
             allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
-            name: "Top 200".to_string(),
+            name:String:: from( "Top 200"),
             allocated: vec![],
             allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
-            name: "Top 300".to_string(),
+            name: String:: from("Top 300"),
             allocated: vec![],
             allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
-            name: "Top 400".to_string(),
+            name: String:: from("Top 400"),
             allocated: vec![],
             allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
-            name: "Top 500".to_string(),
+            name: String:: from("Top 500"),
             allocated: vec![],
             allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
-            name: "Top 600".to_string(),
+            name: String:: from("Top 600"),
             allocated: vec![],
             allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
-            name: "Top 700".to_string(),
+            name: String:: from("Top 700"),
             allocated: vec![],
             allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
-            name: "Top 800".to_string(),
+            name: String:: from("Top 800"),
             allocated: vec![],
             allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
-            name: "Top 900".to_string(),
+            name:String:: from( "Top 900"),
+            allocated: vec![],
+            allocated_count: 0,
+        });
+        ido_account._tiers.push(TierItem {
+            name:String:: from( "Top 1000"),
             allocated: vec![],
             allocated_count: 0,
         });
@@ -90,7 +95,7 @@ pub mod crowdfunding {
         //check lai logic add round chỗ constructor của JD tier_allocations
         //add rounds
         ido_account._rounds.push(RoundItem {
-            name: "Allocation".to_string(),
+            name: String:: from("Allocation"),
             duration_seconds: allocation_duration,
             class: RoundClass::Allocation,
             tier_allocations: vec![],
@@ -98,7 +103,7 @@ pub mod crowdfunding {
         });
 
         ido_account._rounds.push(RoundItem {
-            name: "FCFS - Prepare".to_string(),
+            name: String:: from("FCFS - Prepare"),
             duration_seconds: 900,
             class: RoundClass::FcfsPrepare,
             tier_allocations: vec![],
@@ -106,7 +111,7 @@ pub mod crowdfunding {
         });
 
         ido_account._rounds.push(RoundItem {
-            name: "FCFS".to_string(),
+            name: String:: from("FCFS"),
             duration_seconds: fcfs_duration,
             class: RoundClass::Fcfs,
             tier_allocations: vec![],
@@ -117,8 +122,8 @@ pub mod crowdfunding {
         Ok(())
     }
 
-    //admin function
-    pub fn modify_rounds(ctx: Context<Modifier>, name_list : Vec<String>, duration_list: Vec<u32>, class_list: Vec<RoundClass>, tiers: u64)-> ProgramResult{
+    //todo: check lại logic phan tiers khai bao
+    pub fn modify_rounds(ctx: Context<Modifier>, name_list : Vec<String>, duration_list: Vec<u32>, class_list: Vec<RoundClass>)-> ProgramResult{
         let ido_account = &mut ctx.accounts.ido_info;
         let user = &mut ctx.accounts.user;
         //check owner
@@ -142,7 +147,7 @@ pub mod crowdfunding {
                 name: name.to_string(),
                 duration_seconds: duration_list[i],
                 class: class_list[i].clone(),
-                tier_allocations: vec![tiers],
+                tier_allocations: vec![],
                 participated: vec![],
             });
         }
@@ -357,6 +362,28 @@ pub mod crowdfunding {
                 claimed: vec![]
             });
         }
+        Ok(())
+    }
+
+    pub fn set_closed(ctx: Context<Modifier>, close: bool) ->ProgramResult{
+        let ido_account = &mut ctx.accounts.ido_info;
+        let user = &mut ctx.accounts.user;
+        //check owner
+        if ido_account._owner != *user.key {
+            return Err(ProgramError::InvalidAccountOwner);
+        }
+        ido_account._closed = close;
+        Ok(())
+    }
+
+    pub fn set_cap(ctx: Context<Modifier>, cap: u64) ->ProgramResult{
+        let ido_account = &mut ctx.accounts.ido_info;
+        let user = &mut ctx.accounts.user;
+        //check owner
+        if ido_account._owner != *user.key {
+            return Err(ProgramError::InvalidAccountOwner);
+        }
+        ido_account._cap = cap;
         Ok(())
     }
 

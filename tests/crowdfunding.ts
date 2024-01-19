@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Crowdfunding } from "../target/types/crowdfunding";
-import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { Keypair, LAMPORTS_PER_SOL, PublicKey, SOLANA_SCHEMA } from "@solana/web3.js";
 import {Program, AnchorProvider, web3, utils, BN} from '@project-serum/anchor';
 import { assert, expect } from "chai";
 
@@ -47,36 +47,34 @@ describe("crowd funding testing", () => {
   });
 
 
-  // it("modify_rounds", async () => {
-  //   if(!idoAccount) return;
-  //   const index = 0;
-  //   const name = "Test round1";
-  //   const durationSeconds = 600;
-
   
+  
+  it("modify_rounds", async () => {
+    if(!idoAccount) return;
 
-  //   //check lai logic cho round class
-  //  const _class = {fcfsPrepare:{}}
+    const nameList = ["Test round1", "Test prepare", "Test fsfs",] ;
+    const durationSeconds = [3600, 1500, 9000];
 
-   
-  //   //test setupReleaseToken  -> OK
-  //   await program.rpc.modifyRound(index, name,durationSeconds , _class, {
-  //    accounts: {
-  //      idoInfo: idoAccount.publicKey,
-  //      user: provider.wallet.publicKey,
-  //      systemProgram: anchor.web3.SystemProgram.programId,
-  //    }
-  //  });  
-  //  const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
-  //  const round = idoInfo.rounds[index];
+    //check lai logic cho round class
+   const classList = [{Allocation:{}}, {fcfsPrepare:{}},  {Fcfs:{}} ] 
 
-  //  console.log(round);
-   
-  //   assert.equal(round.name, name, "modify round name");
+    await program.rpc.modifyRounds( nameList , durationSeconds , classList, {
+     accounts: {
+       idoInfo: idoAccount.publicKey,
+       user: provider.wallet.publicKey,
+       systemProgram: anchor.web3.SystemProgram.programId,
+     }
+    });  
+    const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
  
-  //   assert.equal(round.durationSeconds, durationSeconds, "modify duration");
-  //   // assert.equal(round.class, _class, "modify class");
-  // });
+    const rounds = idoInfo.rounds;
+    for (let i = 0; i < rounds.length; i++) {
+        const r = rounds[i];
+        assert.equal(r.name, nameList[i], "modify round name");
+        assert.equal(r.durationSeconds, durationSeconds[i], "modify duration");
+        // assert.equal(JSON.stringify(r.class), JSON.stringify(classList[i]), "modify class");
+    }
+  });
 
   it("modify_round", async () => {
     if(!idoAccount) return;
@@ -84,13 +82,10 @@ describe("crowd funding testing", () => {
     const name = "Test round1";
     const durationSeconds = 600;
 
-  
-
     //check lai logic cho round class
    const _class = {fcfsPrepare:{}}
 
    
-    //test setupReleaseToken  -> OK
     await program.rpc.modifyRound(index, name,durationSeconds , _class, {
      accounts: {
        idoInfo: idoAccount.publicKey,
@@ -105,7 +100,7 @@ describe("crowd funding testing", () => {
     assert.equal(round.name, name, "modify round name");
  
     assert.equal(round.durationSeconds, durationSeconds, "modify duration");
-    // assert.equal(round.class, _class, "modify class");
+    assert.equal(JSON.stringify(round.class), JSON.stringify(_class), "modify class");
   });
 
   it("setup release token", async () => {
@@ -153,42 +148,42 @@ describe("crowd funding testing", () => {
   });
 
   //test modify tier
-  // it("modify tier", async () => {
-  //   const index = 1;
-  //   const name = 'Lottery Winners Test'; 
-  //   await program.rpc.modifyTier(index, name, {
-  //     accounts: {
-  //       idoInfo: idoAccount.publicKey,
-  //       user: provider.wallet.publicKey,
-  //       systemProgram: anchor.web3.SystemProgram.programId,
-  //     }
-  //   });  
-  //   const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
+  it("modify tier", async () => {
+    const index = 1;
+    const name = 'Lottery Winners Test'; 
+    await program.rpc.modifyTier(index, name, {
+      accounts: {
+        idoInfo: idoAccount.publicKey,
+        user: provider.wallet.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      }
+    });  
+    const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
 
-    // console.log(JSON.stringify(idoInfo));
+    console.log(JSON.stringify(idoInfo));
     
-  //   const _tier = idoInfo.tiers[index];
-  //   assert.equal(_tier.name, name, "tier name is name change");
+    const _tier = idoInfo.tiers[index];
+    assert.equal(_tier.name, name, "tier name is changed");
 
-  // })
+  })
 
-  // it("modify_tiers", async () => {
+  it("modify_tiers", async () => {
 
-  //   const names = ["Tier 1", "Tier 2","Tier 3", "Tier 4", "Tier 5", "Tier 6"]
-  //   await program.rpc.modifyTiers(names, {
-  //     accounts: {
-  //       idoInfo: idoAccount.publicKey,
-  //       user: provider.wallet.publicKey,
-  //       systemProgram: anchor.web3.SystemProgram.programId,
-  //     }
-  //   });  
-  //   const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
-  //   const tiers = idoInfo.tiers;
-  //     for (let i = 0; i < tiers.length; i++) {
-  //       const name = tiers[i].name;
-  //       assert.equal(name, names[i], "tier name is name change");  
-  //     }
-  // })
+    const names = ["Tier 1", "Tier 2","Tier 3", "Tier 4", "Tier 5", "Tier 6"]
+    await program.rpc.modifyTiers(names, {
+      accounts: {
+        idoInfo: idoAccount.publicKey,
+        user: provider.wallet.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      }
+    });  
+    const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
+    const tiers = idoInfo.tiers;
+      for (let i = 0; i < tiers.length; i++) {
+        const name = tiers[i].name;
+        assert.equal(name, names[i], "tier name is changed");  
+      }
+  })
 
   it("setup_releases", async () => {
 
@@ -210,29 +205,29 @@ describe("crowd funding testing", () => {
 
   })
 
-  // it("modify_tier_list", async () => {
+  it("modify_tier_list", async () => {
 
-  //   const nameList = ["Test1","Test2", "Test3"]
+    const nameList = ["Test1","Test2", "Test3"]
    
-  //  await program.rpc.modifyTiers(nameList, {
-  //     accounts: {
-  //       idoInfo: idoAccount.publicKey,
-  //       user: provider.wallet.publicKey,
-  //       systemProgram: anchor.web3.SystemProgram.programId,
-  //     }
-  //   });  
+   await program.rpc.modifyTiers(nameList, {
+      accounts: {
+        idoInfo: idoAccount.publicKey,
+        user: provider.wallet.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      }
+    });  
 
 
-  //   const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
+    const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
     
-  //   const _tiers = idoInfo.tiers;
-  //   assert.equal(_tiers.length, nameList.length, "change tier");
-  //  for (let index = 0; index < _tiers.length; index++) {
-  //   const tier = _tiers[index];
-  //   assert.equal(tier.name, nameList[index], "tier name is name change");
-  //  }
+    const _tiers = idoInfo.tiers;
+    assert.equal(_tiers.length, nameList.length, "change tier");
+   for (let index = 0; index < _tiers.length; index++) {
+    const tier = _tiers[index];
+    assert.equal(tier.name, nameList[index], "tier name is changed");
+   }
 
-  // })
+  })
 
   it("modify_tier_allocated", async () => {
     const index = 0;
@@ -262,10 +257,38 @@ describe("crowd funding testing", () => {
             assert.equal(al.allocated, !remove, "address is allocated");
           }
           
-        } 
-        
+        }  
       }
+  })
 
+  it("set_cap", async () => {
+    const cap = new BN (10*LAMPORTS_PER_SOL);
+    await program.rpc.setCap(cap, {
+      accounts: {
+        idoInfo: idoAccount.publicKey,
+        user: provider.wallet.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      }
+    });  
+ 
+    const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
+    assert.equal(idoInfo.cap.toString(), cap.toString(), "cap is changed");
+   
+  })
+
+  it("set_closed", async () => {
+    const closed = true;
+    await program.rpc.setClosed(closed, {
+      accounts: {
+        idoInfo: idoAccount.publicKey,
+        user: provider.wallet.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      }
+    });  
+ 
+    const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
+    assert.equal(idoInfo.closed, closed, "state project change");
+   
   })
 
 

@@ -1,8 +1,11 @@
+
+
 use anchor_lang::prelude::borsh::BorshDeserialize;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::entrypoint::ProgramResult;
 use anchor_lang::AnchorDeserialize;
 use anchor_lang::AnchorSerialize;
+
 
 declare_id!("6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq");
 
@@ -39,57 +42,58 @@ pub mod crowdfunding {
         ido_account._tiers.push(TierItem {
             name: String:: from("Lottery Winners"),
             allocated: vec![],
-            allocated_count: 0,
+            // allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
             name: String:: from("Top 100"),
             allocated: vec![],
-            allocated_count: 0,
+            // allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
             name:String:: from( "Top 200"),
             allocated: vec![],
-            allocated_count: 0,
+            // allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
             name: String:: from("Top 300"),
             allocated: vec![],
-            allocated_count: 0,
+            // allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
             name: String:: from("Top 400"),
             allocated: vec![],
-            allocated_count: 0,
+            // allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
             name: String:: from("Top 500"),
             allocated: vec![],
-            allocated_count: 0,
+            // allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
             name: String:: from("Top 600"),
             allocated: vec![],
-            allocated_count: 0,
+            // allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
             name: String:: from("Top 700"),
             allocated: vec![],
-            allocated_count: 0,
+            // allocated_count: 0,
         });
+        
         ido_account._tiers.push(TierItem {
             name: String:: from("Top 800"),
             allocated: vec![],
-            allocated_count: 0,
+            // allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
             name:String:: from( "Top 900"),
             allocated: vec![],
-            allocated_count: 0,
+            // allocated_count: 0,
         });
         ido_account._tiers.push(TierItem {
             name:String:: from( "Top 1000"),
             allocated: vec![],
-            allocated_count: 0,
+            // allocated_count: 0,
         });
 
         //check lai logic add round chỗ constructor của JD tier_allocations
@@ -117,7 +121,6 @@ pub mod crowdfunding {
             tier_allocations: vec![],
             participated: vec![],
         });
-
         msg!("Create account success!");
         Ok(())
     }
@@ -232,7 +235,7 @@ pub mod crowdfunding {
             ido_account._tiers.push(TierItem {
                 name: name.to_string(),
                 allocated: vec![],
-                allocated_count: 0,
+                // allocated_count: 0,
             });
         }   
         
@@ -263,39 +266,48 @@ pub mod crowdfunding {
         }
 
         let tier = &mut ido_account._tiers[index as usize];
+        
 
         for (_, address) in addresses.iter().enumerate() {
             let address = Pubkey::from_str(address).unwrap();
 
-            let mut check_exits = false;
-            let mut index = 0;
-            
-            
-            for (i, item) in tier.allocated.iter().enumerate() {
-                if item.address == address {
-                    check_exits = true;
-                    index = i;
-                    break;
-                }
-            }
-
-            if check_exits {
-                tier.allocated[index].allocated = !remove;
-                
-            } else {
-                tier.allocated.push(AllocateTier {
+            let al = {
+                AllocateTier {
                     address,
                     allocated: !remove,
-                });
-            }
-
-            if !remove {
-                tier.allocated_count += 1;
-            } else {
-                if tier.allocated_count > 0 {
-                    tier.allocated_count -= 1;
                 }
-            }
+            };
+            tier.add_allocated(al);
+
+            // let mut check_exits = false;
+            // let mut index = 0;
+            
+            
+            // for (i, item) in tier.allocated.iter().enumerate() {
+            //     if item.address == address {
+            //         check_exits = true;
+            //         index = i;
+            //         break;
+            //     }
+            // }
+
+            // if check_exits {
+            //     tier.allocated[index].allocated = !remove;
+                
+            // } else {
+            //     tier.allocated.push(AllocateTier {
+            //         address,
+            //         allocated: !remove,
+            //     });
+            // }
+
+            // if !remove {
+            //     tier.allocated_count += 1;
+            // } else {
+            //     if tier.allocated_count > 0 {
+            //         tier.allocated_count -= 1;
+            //     }
+            // }
         }
 
         Ok(())
@@ -325,9 +337,9 @@ pub mod crowdfunding {
 
         
         //transfer token
-        let ix = transfer(
-            &ID,
-            &ido_account._raise_token,
+        let _ix = transfer(
+            &system_program.key(),
+            &user.key(),
             &ido_account._release_token,
             &user.key,
             &[],
@@ -387,6 +399,32 @@ pub mod crowdfunding {
         Ok(())
     }
 
+    //doing check lai ham nay la with draw balance cua SC ve vi ca nhan
+    pub fn transfer_native_token(ctx: Context<TransferNativeToken>, amount: u64, to: Pubkey )->ProgramResult{
+        let ido_account = &mut ctx.accounts.ido_info;
+        let user = &mut ctx.accounts.user;
+        // let system_program = &mut ctx.accounts.system_program;
+        //check owner
+        if ido_account._owner != *user.key {
+            return Err(ProgramError::InvalidAccountOwner);
+        }
+        //transfer token
+        let ix = anchor_lang::solana_program::system_instruction::transfer(
+            &user.key(),
+            &to,
+            amount
+        );
+        anchor_lang::solana_program::program::invoke(
+            &ix,
+            &[
+                ctx.accounts.user.to_account_info(),
+                ctx.accounts.ido_info.to_account_info()
+            ]
+        )?;
+
+        Ok(())
+    }
+
 }
 
 #[derive(Accounts)]
@@ -405,7 +443,7 @@ pub struct IdoAccountInfo {
     pub _rate: u16,
     pub _open_timestamp: u32,
     pub _cap: u64,
-    pub _participated: u32,
+    pub _participated: u64,
     pub _participated_count: u32,
     pub _closed: bool,
     pub _owner: Pubkey,
@@ -413,7 +451,6 @@ pub struct IdoAccountInfo {
     pub _release_token: Pubkey,
     pub _release_token_pair: Pubkey,
 
-    //private
     pub _tiers: Vec<TierItem>,
     pub _rounds: Vec<RoundItem>,
     pub _releases: Vec<ReleaseItem>,
@@ -440,11 +477,7 @@ pub struct Participated {
     pub amount: u64,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
-pub struct AllocateTier {
-    pub address: Pubkey,
-    pub allocated: bool,
-}
+
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct ReleaseItem {
@@ -464,9 +497,36 @@ pub struct ClaimedAmount{
 pub struct TierItem {
     pub name: String,
     pub allocated: Vec<AllocateTier>,
-    pub allocated_count: u64,
+    // pub allocated_count: u64,
+}
+impl  TierItem {
+     pub fn add_allocated(&mut self, al: AllocateTier){
+
+        let  allocated = self.allocated.clone();
+        //check al in allocated
+        let mut check_exits = false;
+        let mut index: usize = 0;
+        for (i, item) in allocated.iter().enumerate() {
+            if item.address == al.address {
+                check_exits = true;
+                index = i;
+                break;
+            }
+        }
+        //if exits update 
+        if check_exits {
+            self.allocated[index].allocated = al.allocated;
+        } else {
+            self.allocated.push(al);
+        }
+    }
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+pub struct AllocateTier {
+    pub address: Pubkey,
+    pub allocated: bool,
+}
 
 #[derive(Accounts)]
 pub struct SetupReleaseToken<'info> {
@@ -520,6 +580,18 @@ pub struct  Modifier<'info>{
 
     pub system_program: Program<'info, System>,
 }
+
+#[derive(Accounts)]
+pub struct  TransferNativeToken<'info>{
+    #[account(mut)]
+    pub ido_info: Account<'info, IdoAccountInfo>,
+
+    #[account(mut)]
+    pub user: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
 
 // #[derive(Accounts)]
 // pub struct ModifyTierAllocated<'info>{

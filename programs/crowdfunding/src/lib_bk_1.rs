@@ -159,7 +159,6 @@ pub mod crowdfunding {
 
         Ok(())
     }
-    
     pub fn modify_tier(ctx: Context<ModifyTier>, index: u16, name: String) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
         let user = &mut ctx.accounts.user;
@@ -235,7 +234,6 @@ pub mod crowdfunding {
 
             let mut check_exits = false;
             let mut index = 0;
-            
             
             for (i, item) in tier.allocated.iter().enumerate() {
                 if item.address == address {

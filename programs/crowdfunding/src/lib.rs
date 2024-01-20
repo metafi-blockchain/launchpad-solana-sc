@@ -192,8 +192,6 @@ pub mod crowdfunding {
         //get info Ido from account address
         let r = &mut ido_account._rounds[index as usize];
         r.tier_allocations = tier_allocations;
-
-
         Ok(())
     }
 
@@ -278,7 +276,7 @@ pub mod crowdfunding {
                 }
             };
             tier.add_allocated(al);
-
+            test()
             // let mut check_exits = false;
             // let mut index = 0;
             
@@ -590,6 +588,9 @@ pub struct  TransferNativeToken<'info>{
     pub user: Signer<'info>,
 
     pub system_program: Program<'info, System>,
+}
+fn test(){
+   print!("test") 
 }
 
 

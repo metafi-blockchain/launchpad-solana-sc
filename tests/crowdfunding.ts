@@ -148,24 +148,24 @@ describe("crowd funding testing", () => {
   });
 
   //test modify tier
-  // it("modify tier", async () => {
-  //   const index = 1;
-  //   const name = 'Lottery Winners Test'; 
-  //   await program.rpc.modifyTier(index, name, {
-  //     accounts: {
-  //       idoInfo: idoAccount.publicKey,
-  //       user: provider.wallet.publicKey,
-  //       systemProgram: anchor.web3.SystemProgram.programId,
-  //     }
-  //   });  
-  //   const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
+  it("modify tier", async () => {
+    const index = 1;
+    const name = 'Lottery Winners Test'; 
+    await program.rpc.modifyTier(index, name, {
+      accounts: {
+        idoInfo: idoAccount.publicKey,
+        user: provider.wallet.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      }
+    });  
+    const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
 
-  //   console.log(JSON.stringify(idoInfo));
+    console.log(JSON.stringify(idoInfo));
     
-  //   const _tier = idoInfo.tiers[index];
-  //   assert.equal(_tier.name, name, "tier name is changed");
+    const _tier = idoInfo.tiers[index];
+    assert.equal(_tier.name, name, "tier name is changed");
 
-  // })
+  })
 
   // it("modify_tiers", async () => {
 
@@ -185,25 +185,25 @@ describe("crowd funding testing", () => {
   //     }
   // })
 
-  // it("setup_releases", async () => {
+  it("setup_releases", async () => {
 
-  //  const from_timestamps = [1705514720, 1705536720 , 1705574720]
-  //  const to_timestamps = [1705734740, 1705834720, 1705934720]
-  //  const percents = [40, 30, 30];
-  //  await program.rpc.setupReleases(from_timestamps, to_timestamps, percents, {
-  //     accounts: {
-  //       idoInfo: idoAccount.publicKey,
-  //       user: provider.wallet.publicKey,
-  //       systemProgram: anchor.web3.SystemProgram.programId,
-  //     }
-  //   });  
+   const from_timestamps = [1705514720, 1705536720 , 1705574720]
+   const to_timestamps = [1705734740, 1705834720, 1705934720]
+   const percents = [40, 30, 30];
+   await program.rpc.setupReleases(from_timestamps, to_timestamps, percents, {
+      accounts: {
+        idoInfo: idoAccount.publicKey,
+        user: provider.wallet.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      }
+    });  
 
-  //   const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
-  //   const releases = idoInfo.releases;
-  //   assert.equal(releases.length, 3, "releases length is 3");
-  //   // assert.equal(_tier.name, name, "tier name is name change");
+    const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
+    const releases = idoInfo.releases;
+    assert.equal(releases.length, 3, "releases length is 3");
+    // assert.equal(_tier.name, name, "tier name is name change");
 
-  // })
+  })
 
   // it("modify_tier_list", async () => {
 

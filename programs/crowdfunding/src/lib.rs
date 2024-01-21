@@ -466,8 +466,7 @@ pub mod crowdfunding {
             )?;
         } else {
             //get user token balance
-            let user_token_account = ctx.accounts.user_token_account.clone();
-            let user_token_account_info = ctx.accounts.user_token_account.clone();
+            //doing
 
 
 
@@ -478,7 +477,6 @@ pub mod crowdfunding {
             // }
 
             // transfer raise_token to account ido
-
             let transfer_instruction = spl_token::instruction::transfer(
                 &ido_account._raise_token.key(),
                 &user.key(),

@@ -236,7 +236,7 @@ describe("crowd funding testing", () => {
     const add3 = "HwzR86jCMDsddsNY6xYNk6qC8kSvTaEMFSQmemCWsyxS";
     const addresses = [add1,add2, add3]
    const remove = false;
-    await program.rpc.modifyTierAllocated(index, addresses, false, {
+    await program.rpc.modifyTierAllocated(index, addresses, remove, {
       accounts: {
         idoInfo: idoAccount.publicKey,
         user: provider.wallet.publicKey,

@@ -527,7 +527,7 @@ pub mod crowdfunding {
         Ok(())
     }
 
-    //user claim token
+    //user claim token  : doing
     pub fn claim(ctx: Context<Claim>, index: u16, claimant: Pubkey) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
         Ok(())
@@ -969,17 +969,20 @@ fn get_allocation_remaining(
     return 0;
 }
 
+
+//doing
 fn release_token_decimals() -> u8 {
     let mut decimals = 9;
 
     decimals
 }
+//doing
 fn raise_token_decimals() -> u8 {
     let mut decimals = 9;
 
     decimals
 }
-
+ //doing
 fn get_allocation(
     ido_account: &IdoAccountInfo,
     wallet: &Pubkey,
@@ -1045,6 +1048,7 @@ fn get_allocation(
             if claimed < claimable {
                 remaining = claimable.safe_sub(claimed).unwrap();
             }
+           
 
             // //check _release_token is equal publich key 1nc1nerator11111111111111111111111111111111
             // if ido_account._release_token == Pubkey::from_st("1nc1nerator11111111111111111111111111111111"){

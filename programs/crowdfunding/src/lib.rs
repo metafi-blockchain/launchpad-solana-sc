@@ -4,9 +4,13 @@ use anchor_lang::solana_program::entrypoint::ProgramResult;
 use anchor_lang::AnchorDeserialize;
 use anchor_lang::AnchorSerialize;
 use solana_safe_math::SafeMath;
+use spl_token::instruction::transfer;
+use spl_token::state::Account as TokenAccount;
 use std::ops::Add;
 use std::ops::Sub;
-use spl_token::instruction::transfer;
+use std::str::FromStr;
+
+static ADDRESS_NATIVE_TOKEN: &str = "1nc1nerator11111111111111111111111111111111";
 
 declare_id!("6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq");
 
@@ -14,7 +18,6 @@ declare_id!("6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq");
 pub mod crowdfunding {
     use spl_token::instruction::transfer;
     use std::{ops::Sub, str::FromStr};
-
 
     use super::*;
 
@@ -414,11 +417,11 @@ pub mod crowdfunding {
     //user join IDO
     pub fn participate(ctx: Context<Participate>, token: Pubkey, amount: u64) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
-        let user = &mut ctx.accounts.user;
-        let system_program = &mut ctx.accounts.system_program;
+        let user = &ctx.accounts.user;
+        let system_program = &ctx.accounts.system_program;
 
-        //check token
-        if ido_account._raise_token != token {
+        //check token is valid
+        if ido_account._raise_token != token && check_id(&token) {
             msg!("{}", "Incorrect token specified");
             return Err(ProgramError::InvalidArgument);
         }
@@ -441,58 +444,61 @@ pub mod crowdfunding {
             msg!("{}", "Amount exceeds remaining allocation");
             return Err(ProgramError::InvalidArgument);
         }
-        
-        //check balance of native token
-        //get balance of user
-        let balance =   user.get_lamports();
+        if ido_account._raise_token == Pubkey::from_str(ADDRESS_NATIVE_TOKEN).unwrap() {
 
-        //check balance
-        if balance < amount {
-            msg!("{}", "Insufficent native token balance");
-            return Err(ProgramError::InvalidArgument);
+            //get user lam port
+            let user_lamport = user.get_lamports();
+            //check balance
+            if user_lamport < amount {
+                msg!("{}", "Insufficent native token balance");
+                return Err(ProgramError::InvalidArgument);
+            }
+
+            //send sol to account ido address
+            let ix = anchor_lang::solana_program::system_instruction::transfer(
+                &user.key(),
+                &ido_account.key(),
+                amount,
+            );
+            anchor_lang::solana_program::program::invoke(
+                &ix,
+                &[user.to_account_info(), ido_account.to_account_info()],
+            )?;
+        } else {
+            //get user token balance
+            let user_token_account = ctx.accounts.user_token_account.clone();
+            let user_token_account_info = ctx.accounts.user_token_account.clone();
+
+
+
+            //check balance
+            // if user_balance < amount {
+            //     msg!("{}", "Insufficent token balance");
+            //     return Err(ProgramError::InvalidArgument);
+            // }
+
+            // transfer raise_token to account ido
+
+            let transfer_instruction = spl_token::instruction::transfer(
+                &ido_account._raise_token.key(),
+                &user.key(),
+                &ido_account.key(),
+                &user.key(),
+                &[],
+                amount,
+            )?;
+
+            anchor_lang::solana_program::program::invoke_signed(
+                &transfer_instruction,
+                &[
+                    user.to_account_info(),
+                    ido_account.to_account_info(),
+                    system_program.to_account_info(),
+                ],
+                &[&[&b"transfer"[..], &[0u8; 32]]],
+            )?;
         }
-        //transfer the tokens to IdoInfo account
-        // let ix = transfer(
-        //     &user.key(),
-        //     &ido_account.key(),
-        //     &user.key(),
-        //     &user.key(),
-        //     &[],
-        //     amount,
-        // );
-        // let ix = ix.unwrap();
-        // anchor_lang::solana_program::program::invoke(
-        //     &ix,
-        //     &[
-        //         ctx.accounts.user.to_account_info(),     
-        //         ctx.accounts.ido_info.to_account_info(),
-        //         ctx.accounts.system_program.to_account_info()
-        //     ],
-        // )?;
-        // msg!("{}","Insufficent native token sent to contract");
-   
 
-        //check balance of raise token
-        let raise_token_account = ido_account._release_token;
-
-        //transfer token
-        let ix = transfer(
-            &raise_token_account,
-            &user.key(),
-            &ido_account.key(),
-            &user.key(),
-            &[],
-            amount,
-        );
-        let ix = ix.unwrap();
-        // anchor_lang::solana_program::program::invoke(
-        //     &ix,
-        //     &[
-        //         ctx.accounts.user.to_account_info(),
-        //         ctx.accounts.ido_info.to_account_info(),
-        //         ctx.accounts.system_program.to_account_info()
-        //     ],
-        // )?;
         //emit event transfer
         emit!(ParticipateEvent {
             amount: amount,
@@ -524,9 +530,9 @@ pub mod crowdfunding {
     }
 
     //user claim token
-    pub fn claim(ctx: Context<Claim>, index: u16, claimant: Pubkey)  -> ProgramResult {
+    pub fn claim(ctx: Context<Claim>, index: u16, claimant: Pubkey) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
-         Ok(())
+        Ok(())
     }
 }
 
@@ -633,16 +639,15 @@ pub struct ReleaseItem {
     claimed: Vec<ClaimedAmount>,
 }
 impl ReleaseItem {
-   pub fn get_claimed_of_address(&self,  address: &Pubkey) -> u64{
-         let claimed = self.claimed.clone();
-         for (i, item) in claimed.iter().enumerate() {
-              if item.address == *address {
+    pub fn get_claimed_of_address(&self, address: &Pubkey) -> u64 {
+        let claimed = self.claimed.clone();
+        for (_, item) in claimed.iter().enumerate() {
+            if item.address == *address {
                 return item.amount;
-              }
-         }
-         return 0;
-   }
-    
+            }
+        }
+        return 0;
+    }
 }
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct ClaimedAmount {
@@ -667,7 +672,7 @@ impl ClaimedAmount {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct TierItem {
     pub name: String,
-    pub allocated: Vec<AllocateTier>
+    pub allocated: Vec<AllocateTier>,
 }
 
 impl TierItem {
@@ -752,7 +757,6 @@ pub struct Participate<'info> {
     pub system_program: Program<'info, System>,
 }
 
-
 #[derive(Accounts)]
 pub struct Claim<'info> {
     #[account(mut)]
@@ -796,7 +800,6 @@ pub struct TransferNativeToken<'info> {
     pub system_program: Program<'info, System>,
 }
 
-
 /**
  * Get event structure
  */
@@ -806,7 +809,6 @@ pub struct ParticipateEvent {
     pub amount: u64,
     pub address: Pubkey,
 }
-
 
 /**
  * Get info
@@ -861,7 +863,7 @@ fn _info_wallet(ido_account: &IdoAccountInfo, wallet: &Pubkey) -> (u16, u16, u8,
 
     return (
         tier,
-        round  as u16,
+        round as u16,
         round_state,
         round_state_text,
         round_timestamp,
@@ -876,7 +878,6 @@ fn close_timestamp(ido_account: &IdoAccountInfo) -> u32 {
     }
     ts
 }
-
 
 fn fcfs_timestamp(ido_account: &IdoAccountInfo) -> u32 {
     let mut ts = ido_account._open_timestamp;
@@ -964,24 +965,28 @@ fn get_allocation_remaining(
             }
         }
         None => {
-             0;
+            0;
         }
     }
     return 0;
 }
 
-fn release_token_decimals() -> u8{
+fn release_token_decimals() -> u8 {
     let mut decimals = 9;
-    
-     decimals
+
+    decimals
 }
 fn raise_token_decimals() -> u8 {
     let mut decimals = 9;
-    
+
     decimals
 }
 
-fn get_allocation(ido_account: &IdoAccountInfo, wallet: &Pubkey, index: usize) -> (u32, u32, u16, u64, u64, u64, u64, u8) {
+fn get_allocation(
+    ido_account: &IdoAccountInfo,
+    wallet: &Pubkey,
+    index: usize,
+) -> (u32, u32, u16, u64, u64, u64, u64, u8) {
     match ido_account._releases.get(index) {
         Some(r) => {
             // Add code here
@@ -994,25 +999,33 @@ fn get_allocation(ido_account: &IdoAccountInfo, wallet: &Pubkey, index: usize) -
             let percent = r.percent;
             let from_timestamp = r.from_timestamp;
             let to_timestamp = r.to_timestamp;
-            let  participated = get_participated_total(ido_account, wallet);
+            let participated = get_participated_total(ido_account, wallet);
             let raise_decimals = raise_token_decimals();
             let release_decimals = release_token_decimals();
 
-            total = participated.safe_mul(_rate as u64).unwrap().safe_div(100000).unwrap().safe_mul(percent as u64).unwrap().safe_div(10000).unwrap();
- 
+            total = participated
+                .safe_mul(_rate as u64)
+                .unwrap()
+                .safe_div(100000)
+                .unwrap()
+                .safe_mul(percent as u64)
+                .unwrap()
+                .safe_div(10000)
+                .unwrap();
+
             if raise_decimals > release_decimals {
                 let base = raise_decimals.sub(release_decimals);
                 total = total.safe_div(base.pow(10) as u64).unwrap();
             }
 
-            if release_decimals > raise_decimals{
+            if release_decimals > raise_decimals {
                 let base = release_decimals.sub(raise_decimals);
                 total = total.safe_mul(base.pow(10) as u64).unwrap();
             }
             claimable = total;
 
             let now_ts = Clock::get().unwrap().unix_timestamp as u32;
-            
+
             match to_timestamp > from_timestamp && now_ts < to_timestamp {
                 true => {
                     let mut elapsed = 0;
@@ -1020,15 +1033,18 @@ fn get_allocation(ido_account: &IdoAccountInfo, wallet: &Pubkey, index: usize) -
                         elapsed = now_ts.safe_sub(from_timestamp).unwrap();
                     }
                     let duration = to_timestamp.safe_sub(from_timestamp).unwrap();
-                    claimable = total.safe_mul(elapsed as u64).unwrap().safe_div(duration as u64).unwrap();
-
+                    claimable = total
+                        .safe_mul(elapsed as u64)
+                        .unwrap()
+                        .safe_div(duration as u64)
+                        .unwrap();
                 }
                 false => (),
             }
 
             claimed = r.get_claimed_of_address(wallet);
 
-            if claimed < claimable{
+            if claimed < claimable {
                 remaining = claimable.safe_sub(claimed).unwrap();
             }
 
@@ -1039,14 +1055,21 @@ fn get_allocation(ido_account: &IdoAccountInfo, wallet: &Pubkey, index: usize) -
 
             //             // check balance _release_token
             //             if  ido_account._release_token_pair == Pubkey::from_st(ADDRESS_NATIVE_TOKEN) && {
-                            
+
             //             }
             //     }
             // }
 
-
-
-            return (from_timestamp, to_timestamp, percent, claimable, total, claimed, remaining, status);
+            return (
+                from_timestamp,
+                to_timestamp,
+                percent,
+                claimable,
+                total,
+                claimed,
+                remaining,
+                status,
+            );
         }
         None => {
             msg!("Invalid release index");

@@ -127,7 +127,7 @@ describe("crowd funding testing", () => {
 
   it("modify_round_allocations", async () => {
     if(!idoAccount) return;
-    const index = 1;
+    const index = 0;
     const tierAllocations = [new BN(0.1 * LAMPORTS_PER_SOL), new BN(0.02 * LAMPORTS_PER_SOL) ];
    
     //test setupReleaseToken  -> OK

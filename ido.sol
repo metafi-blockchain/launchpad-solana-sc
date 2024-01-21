@@ -483,10 +483,11 @@ contract CrowdParticipationAI01 is Ownable {
         _rate = rate;
     }
     
+
     function setOpenTimestamp(uint256 openTimestamp) external onlyOwner() {
         _openTimestamp = openTimestamp;
     }
-    
+
     function setClosed(bool closed) external onlyOwner() {
         _closed = closed;
     }

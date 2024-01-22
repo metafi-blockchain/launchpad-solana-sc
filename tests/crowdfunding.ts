@@ -248,7 +248,6 @@ describe("crowd funding testing", () => {
 
     
     const tier = idoInfo.tiers[index];
-    console.log(JSON.stringify(tier));
     
       for (let i = 0; i < tier.allocated.length; i++) {
         const al = tier.allocated[i];

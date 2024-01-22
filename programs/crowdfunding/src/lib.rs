@@ -4,11 +4,12 @@ use anchor_lang::solana_program::entrypoint::ProgramResult;
 use anchor_lang::AnchorDeserialize;
 use anchor_lang::AnchorSerialize;
 use solana_safe_math::SafeMath;
-use spl_token::instruction::transfer;
-use spl_token::state::Account as TokenAccount;
 use std::ops::Add;
 use std::ops::Sub;
 use std::str::FromStr;
+use spl_token::instruction::transfer;
+use metaplex_token_metadata::{MetaplexTokenMetadata, MetaplexToken};
+
 
 static ADDRESS_NATIVE_TOKEN: &str = "1nc1nerator11111111111111111111111111111111";
 
@@ -16,7 +17,7 @@ declare_id!("6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq");
 
 #[program]
 pub mod crowdfunding {
-    use spl_token::instruction::transfer;
+
     use std::{ops::Sub, str::FromStr};
 
     use super::*;
@@ -988,15 +989,11 @@ fn get_allocation(
     wallet: &Pubkey,
     index: usize,
 ) -> (u32, u32, u16, u64, u64, u64, u64, u8) {
+
     match ido_account._releases.get(index) {
-        Some(r) => {
-            // Add code here
-            let mut total = 0;
-            let mut claimable = 0;
-            let mut claimed = 0;
+        Some(r) => { 
             let _rate = ido_account._rate;
             let mut remaining = 0;
-            let mut status = 0;
             let percent = r.percent;
             let from_timestamp = r.from_timestamp;
             let to_timestamp = r.to_timestamp;
@@ -1004,7 +1001,7 @@ fn get_allocation(
             let raise_decimals = raise_token_decimals();
             let release_decimals = release_token_decimals();
 
-            total = participated
+            let mut total = participated
                 .safe_mul(_rate as u64)
                 .unwrap()
                 .safe_div(100000)
@@ -1023,7 +1020,8 @@ fn get_allocation(
                 let base = release_decimals.sub(raise_decimals);
                 total = total.safe_mul(base.pow(10) as u64).unwrap();
             }
-            claimable = total;
+
+            let mut claimable  = total;
 
             let now_ts = Clock::get().unwrap().unix_timestamp as u32;
 
@@ -1043,24 +1041,24 @@ fn get_allocation(
                 false => (),
             }
 
-            claimed = r.get_claimed_of_address(wallet);
+            let claimed = r.get_claimed_of_address(wallet);
 
             if claimed < claimable {
                 remaining = claimable.safe_sub(claimed).unwrap();
             }
-           
 
+            let mut status = 0;
+
+            let native_token_pub = &Pubkey::from_str(ADDRESS_NATIVE_TOKEN).unwrap();
             // //check _release_token is equal publich key 1nc1nerator11111111111111111111111111111111
-            // if ido_account._release_token == Pubkey::from_st("1nc1nerator11111111111111111111111111111111"){
-            //     if from_timestamp == 0 || now_ts > from_timestamp {
-            //             status = 1;
-
-            //             // check balance _release_token
-            //             if  ido_account._release_token_pair == Pubkey::from_st(ADDRESS_NATIVE_TOKEN) && {
-
-            //             }
-            //     }
-            // }
+            if &ido_account._release_token ==  native_token_pub {
+                if from_timestamp == 0 || now_ts > from_timestamp {
+                        status = 1;
+                       
+                        // check balance _release_token
+                       
+                }
+            }
 
             return (
                 from_timestamp,
@@ -1078,4 +1076,26 @@ fn get_allocation(
             return (0, 0, 0, 0, 0, 0, 0, 0);
         }
     }
+}
+
+ fn get_token_metadata(token_id: &str) -> Option<MetaplexTokenMetadata> {
+    // Replace this with your logic to fetch metadata
+    // It might involve calling the Solana API or using the Solana SDK
+    // Return None if metadata retrieval fails
+
+    // Example: Dummy data, replace with actual retrieval logic
+    let metadata_json = fetch_metadata_json_from_solana(token_id);
+    serde_json::from_str(&metadata_json).ok()
+}
+fn fetch_metadata_json_from_solana(token_id: &str) -> String {
+    // Replace this with your logic to fetch metadata JSON from Solana
+    
+    // This function should make a request to the Solana API and return the raw JSON string
+    //implement function  request to the Solana API and return the raw JSON string
+
+    // Example: Dummy data, replace with actual retrieval logic
+
+    // It might involve calling the Solana API or using the Solana SDK
+    // Return actual metadata JSON or an empty string if retrieval fails
+    String::from("{}")
 }

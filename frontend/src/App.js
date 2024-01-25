@@ -3,9 +3,10 @@ import './App.css';
 import NotFound from "./modules/not-found";
 import Homepage from "./modules/homepage";
 import ScrollToTop from "./components/scrool-to-top";
+import {Buffer} from 'buffer';
+window.Buffer = Buffer;
 
 const App = () => {
-
   return (
     <ScrollToTop>
       <Routes>

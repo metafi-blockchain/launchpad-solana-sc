@@ -365,6 +365,7 @@ pub mod crowdfunding {
                 &ido_account.key(),
                 amount,
             );
+            
             anchor_lang::solana_program::program::invoke(
                 &ix,
                 &[user.to_account_info(), ido_account.to_account_info()],
@@ -400,27 +401,8 @@ pub mod crowdfunding {
         });
 
         //update participated of contract
-        ido_account._participated = ido_account._participated.safe_add(amount)?;
-
-        if ido_account.get_participated_total(&user.key()) == 0 {
-            ido_account._participated_count = ido_account._participated_count.add(1);
-        }
-        let sub_round = round.sub(1) as usize;
-
-        match ido_account._rounds.get_mut(sub_round) {
-            Some(mut _r) => {
-                let _participated = _r
-                    .get_participated_of_address(&user.key())
-                    .safe_add(amount)?;
-                //update participated of user
-                _r.set_participated_of_address(&user.key(), &_participated);
-            }
-            None => {
-                msg!("Invalid round index");
-                return Err(ProgramError::InvalidArgument);
-            }
-        }
-
+        ido_account.update_participate(&round, user.key, &amount)?;
+       
         Ok(())
     }
 
@@ -481,6 +463,7 @@ pub struct IdoAccountInfo {
 trait IdoStrait {
 
     //setter function
+    //admin function
      fn add_tier(&mut self, tier: TierItem);
      fn add_round(&mut self, round: RoundItem);
      fn set_closed(&mut self, user: &Pubkey, close: &bool)-> ProgramResult;
@@ -490,7 +473,6 @@ trait IdoStrait {
     fn set_releases(&mut self, user: &Pubkey, from_timestamps: &Vec<u32>, to_timestamps: &Vec<u32>, percents: &Vec<u16>)-> ProgramResult;
 
     fn set_release_token(&mut self,   user: &Pubkey, token: &Pubkey, pair: &Pubkey )-> ProgramResult;
-
 
     fn modify_round(&mut self,   user: &Pubkey,        index: &i32, name: &String,duration_seconds: &u32,class: &RoundClass,)-> ProgramResult;
 
@@ -504,14 +486,17 @@ trait IdoStrait {
 
     fn set_open_timestamp(&mut self,  user: &Pubkey, open_timestamps: &u32)-> ProgramResult;
 
-    //getter function
-    fn is_admin(&mut self, user :&Pubkey) -> bool;
+    //fn participate
+    fn update_participate(&mut self, round: &u16, user: &Pubkey, amount: &u64)-> ProgramResult;
 
-    fn _get_allocation(
-        &mut self,
-        wallet: &Pubkey,
-        index: usize,
-    ) -> (u32, u32, u16, u64, u64, u64, u64, u8);
+
+
+
+    //getter function
+    fn get_info_ido(&self) -> IdoAccountInfo;
+    fn is_admin(&self, user :&Pubkey) -> bool;
+
+    fn _get_allocation( &mut self, wallet: &Pubkey, index: usize) -> (u32, u32, u16, u64, u64, u64, u64, u8);
 
     fn _info_wallet(&mut self, wallet: &Pubkey) -> (u16, u16, u8, String, u32);
     
@@ -538,12 +523,14 @@ impl IdoStrait for IdoAccountInfo {
 
 
     
-     fn add_tier(&mut self, tier: TierItem) {
+    fn add_tier(&mut self, tier: TierItem) {
         self._tiers.push(tier);
     }
+
      fn add_round(&mut self, round: RoundItem) {
         self._rounds.push(round);
     }
+
      fn set_closed(&mut self,user: &Pubkey, close: &bool)-> ProgramResult{
         if !self.is_admin(user) {
             msg!("only authority is allowed to call this function");
@@ -677,7 +664,41 @@ impl IdoStrait for IdoAccountInfo {
         Ok(())
     }
 
-    fn is_admin(&mut self, user: &Pubkey) -> bool{
+    //implement fn participate
+    fn update_participate(&mut self,  round: &u16, user: &Pubkey, amount: &u64)-> ProgramResult{
+         
+            //update participated of contract
+            self._participated = self._participated.safe_add(*amount)?;
+
+        if self.get_participated_total(user) == 0 {
+            self._participated_count = self._participated_count.add(1);
+        }
+        let sub_round = round.sub(1) as usize;
+
+        match self._rounds.get_mut(sub_round) {
+            Some(mut _r) => {
+                let _participated = _r
+                    .get_participated_of_address(user)
+                    .safe_add(*amount)?;
+                //update participated of user
+                _r.set_participated_of_address(user, &_participated);
+            }
+            None => {
+                msg!("Invalid round index");
+                return Err(ProgramError::InvalidArgument);
+            }
+        }
+
+        Ok(())
+
+    }
+
+
+
+
+
+
+    fn is_admin(&self, user: &Pubkey) -> bool{
          self._owner == *user
     }
 
@@ -936,6 +957,10 @@ impl IdoStrait for IdoAccountInfo {
         let mut decimals = 9;
 
         decimals
+    }
+
+    fn get_info_ido(&self) -> IdoAccountInfo {
+        self.clone()
     }
 
 }

@@ -332,8 +332,11 @@ it("set open timestamp", async () => {
         systemProgram: anchor.web3.SystemProgram.programId,
       }
     });  
+   
  
     const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
+
+    
     assert.equal(idoInfo.cap.toString(), cap.toString(), "cap is changed");
   })
   // })

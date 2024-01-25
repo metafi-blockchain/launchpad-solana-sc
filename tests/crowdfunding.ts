@@ -8,6 +8,13 @@ import { assert, expect } from "chai";
 
 
 describe("crowd funding testing", () => {
+
+  const getInfoIdoAccount = async (program: any, idoAccountAddress: String)=>{
+    const idoAccountPub  = new PublicKey(idoAccountAddress)
+    let ido_info = await program.account.idoAccountInfo.fetch(idoAccountPub);
+    return ido_info
+  }
+  
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
@@ -128,32 +135,32 @@ it("set open timestamp", async () => {
   //   }
   // });
 
-  // it("modify_round", async () => {
-  //   if(!idoAccount) return;
-  //   const index = 0;
-  //   const name = "Test round1";
-  //   const durationSeconds = 600;
+  it("modify_round", async () => {
+    if(!idoAccount) return;
+    const index = 0;
+    const name = "Test round1";
+    const durationSeconds = 600;
 
-  //   //check lai logic cho round class
-  //  const _class = {fcfsPrepare:{}}
-
-   
-  //   await program.rpc.modifyRound(index, name,durationSeconds , _class, {
-  //    accounts: {
-  //      idoInfo: idoAccount.publicKey,
-  //      user: provider.wallet.publicKey,
-  //      systemProgram: anchor.web3.SystemProgram.programId,
-  //    }
-  //  });  
-  //  const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
-  //  const round = idoInfo.rounds[index];
+    //check lai logic cho round class
+   const _class = {fcfsPrepare:{}}
 
    
-  //   assert.equal(round.name, name, "modify round name");
+    await program.rpc.modifyRound(index, name,durationSeconds , _class, {
+     accounts: {
+       idoInfo: idoAccount.publicKey,
+       user: provider.wallet.publicKey,
+       systemProgram: anchor.web3.SystemProgram.programId,
+     }
+   });  
+   const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
+   const round = idoInfo.rounds[index];
+
+   
+    assert.equal(round.name, name, "modify round name");
  
-  //   assert.equal(round.durationSeconds, durationSeconds, "modify duration");
-  //   assert.equal(JSON.stringify(round.class), JSON.stringify(_class), "modify class");
-  // });
+    assert.equal(round.durationSeconds, durationSeconds, "modify duration");
+    assert.equal(JSON.stringify(round.class), JSON.stringify(_class), "modify class");
+  });
 
   it("setup release token", async () => {
     if(!idoAccount) return;
@@ -284,7 +291,7 @@ it("set open timestamp", async () => {
   // })
 
   it("modify_tier_allocated", async () => {
-    const index = 0;
+    const index = 2;
     const add1 = "CjZ4nLk8RLmk89hhFZhJT6QNRUUcgGPqMgBMZ5x3re67";
     const add2 = "9kPRkHCcnhgpByJc4fyYuPU6EU68yzC5yKRQrwm2cNYS";
     const add3 = "HwzR86jCMDsddsNY6xYNk6qC8kSvTaEMFSQmemCWsyxS";
@@ -316,19 +323,19 @@ it("set open timestamp", async () => {
       }
   })
 
-  // it("set_cap", async () => {
-  //   const cap = new BN (10*LAMPORTS_PER_SOL);
-  //   await program.rpc.setCap(cap, {
-  //     accounts: {
-  //       idoInfo: idoAccount.publicKey,
-  //       user: provider.wallet.publicKey,
-  //       systemProgram: anchor.web3.SystemProgram.programId,
-  //     }
-  //   });  
+  it("set_cap", async () => {
+    const cap = new BN (10*LAMPORTS_PER_SOL);
+    await program.rpc.setCap(cap, {
+      accounts: {
+        idoInfo: idoAccount.publicKey,
+        user: provider.wallet.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      }
+    });  
  
-  //   const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
-  //   assert.equal(idoInfo.cap.toString(), cap.toString(), "cap is changed");
-   
+    const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
+    assert.equal(idoInfo.cap.toString(), cap.toString(), "cap is changed");
+  })
   // })
 
   // it("set_closed", async () => {
@@ -348,9 +355,5 @@ it("set open timestamp", async () => {
 
 
 
-  const getInfoIdoAccount = async (program: any, idoAccountAddress: String)=>{
-    const idoAccountPub  = new PublicKey(idoAccountAddress)
-    let ido_info = await program.account.idoAccountInfo.fetch(idoAccountPub);
-    return ido_info
-}
+  
 });

@@ -20,4 +20,4 @@ anchor-lang = "0.29.0"
 ahash = "0.8.6"
 spl-token = { version="4.0.0", features = [ "no-entrypoint" ] }
 solana-safe-math="0.1.0"
-metaplex-token-metadata = "0.0.1"
+# anchor-client = "0.29.0"

@@ -45,8 +45,60 @@ describe("crowd funding testing", () => {
     assert.equal(_owner.toString(), provider.wallet.publicKey.toString(), "Owner is user create ido account")
 
   });
+//test modify tier
+it("set cap", async () => {
+  const cap = new BN(10*LAMPORTS_PER_SOL);
+
+  await program.rpc.setCap( cap, {
+    accounts: {
+      idoInfo: idoAccount.publicKey,
+      user: provider.wallet.publicKey,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    }
+  });  
+  const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
+  const _cap = idoInfo._cap;
+  assert.equal(idoInfo._cap, _cap, "cap  is setup");
+
+})
+it("set rate", async () => {
+  const rate = 10000;
+
+  await program.rpc.setRate( rate, {
+    accounts: {
+      idoInfo: idoAccount.publicKey,
+      user: provider.wallet.publicKey,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    }
+  });  
+  const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
+  
+  const _rate = idoInfo._rate;
+  assert.equal(idoInfo._rate, _rate, "_rate  is setup");
+
+})
 
 
+it("set open timestamp", async () => {
+  const timestamp = (new Date().getTime() + 60*100*60) /1000;
+  console.log("timestamp=>", timestamp);
+  
+
+  await program.rpc.setOpenTimestamp( timestamp, {
+    accounts: {
+      idoInfo: idoAccount.publicKey,
+      user: provider.wallet.publicKey,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    }
+  });  
+  const idoInfo = await getInfoIdoAccount(program, idoAccount.publicKey.toString());
+
+  console.log(JSON.stringify(idoInfo));
+  
+  const _open_timestamp = idoInfo._open_timestamp;
+  assert.equal(idoInfo._open_timestamp, _open_timestamp, "_open_timestamp  is setup");
+
+})
   
   
   // it("modify_rounds", async () => {
@@ -56,7 +108,7 @@ describe("crowd funding testing", () => {
   //   const durationSeconds = [3600, 1500, 9000];
 
   //   //check lai logic cho round class
-  //  const classList = [{Allocation:{}}, {fcfsPrepare:{}},  {Fcfs:{}} ] 
+  //  const classList = [{Allocation:{}},  {fcfsPrepare:{}},  {Fcfs:{}} ] 
 
   //   await program.rpc.modifyRounds( nameList , durationSeconds , classList, {
   //    accounts: {
@@ -166,6 +218,8 @@ describe("crowd funding testing", () => {
     assert.equal(_tier.name, name, "tier name is changed");
 
   })
+
+  
 
   // it("modify_tiers", async () => {
 

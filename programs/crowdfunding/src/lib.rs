@@ -1,4 +1,3 @@
-use anchor_lang::prelude::borsh::BorshDeserialize;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::entrypoint::ProgramResult;
 use anchor_lang::AnchorDeserialize;
@@ -7,11 +6,8 @@ use solana_safe_math::SafeMath;
 use std::ops::Add;
 use std::ops::Sub;
 use std::str::FromStr;
-use spl_token::instruction::transfer;
-use metaplex_token_metadata::{MetaplexTokenMetadata, MetaplexToken};
 
-
-static ADDRESS_NATIVE_TOKEN: &str = "1nc1nerator11111111111111111111111111111111";
+static NATIVE_MINT: &str = "So11111111111111111111111111111111111111112";
 
 declare_id!("6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq");
 
@@ -23,7 +19,7 @@ pub mod crowdfunding {
     use super::*;
 
     pub fn initialize(
-        ctx: Context<CreateIdoAccount>,
+        ctx: Context<InitializeIdoAccount>,
         raise_token: String,
         rate: u16,
         open_timestamp: u32,
@@ -45,66 +41,48 @@ pub mod crowdfunding {
         ido_account._release_token = Pubkey::from_str(&release_token).unwrap();
 
         //add tier
-        ido_account._tiers.push(TierItem {
+        ido_account.add_tier(&TierItem {
             name: String::from("Lottery Winners"),
             allocated: vec![],
             // allocated_count: 0,
         });
-        ido_account._tiers.push(TierItem {
+        ido_account.add_tier(&TierItem {
             name: String::from("Top 100"),
             allocated: vec![],
             // allocated_count: 0,
         });
-        ido_account._tiers.push(TierItem {
+        ido_account.add_tier(&TierItem {
             name: String::from("Top 200"),
             allocated: vec![],
             // allocated_count: 0,
         });
-        ido_account._tiers.push(TierItem {
+        ido_account.add_tier(&TierItem {
             name: String::from("Top 300"),
             allocated: vec![],
             // allocated_count: 0,
         });
-        ido_account._tiers.push(TierItem {
+        ido_account.add_tier(&TierItem {
             name: String::from("Top 400"),
             allocated: vec![],
             // allocated_count: 0,
         });
-        ido_account._tiers.push(TierItem {
+        ido_account.add_tier(&TierItem {
             name: String::from("Top 500"),
             allocated: vec![],
             // allocated_count: 0,
         });
-        ido_account._tiers.push(TierItem {
+        ido_account.add_tier(&TierItem {
             name: String::from("Top 600"),
             allocated: vec![],
             // allocated_count: 0,
         });
-        ido_account._tiers.push(TierItem {
-            name: String::from("Top 700"),
-            allocated: vec![],
-            // allocated_count: 0,
-        });
 
-        ido_account._tiers.push(TierItem {
-            name: String::from("Top 800"),
-            allocated: vec![],
-            // allocated_count: 0,
-        });
-        ido_account._tiers.push(TierItem {
-            name: String::from("Top 900"),
-            allocated: vec![],
-            // allocated_count: 0,
-        });
-        ido_account._tiers.push(TierItem {
-            name: String::from("Top 1000"),
-            allocated: vec![],
-            // allocated_count: 0,
-        });
+
+
 
         //check lai logic add round chỗ constructor của JD tier_allocations
         //add rounds
-        ido_account._rounds.push(RoundItem {
+        ido_account.add_round(&RoundItem {
             name: String::from("Allocation"),
             duration_seconds: allocation_duration,
             class: RoundClass::Allocation,
@@ -112,7 +90,7 @@ pub mod crowdfunding {
             participated: vec![],
         });
 
-        ido_account._rounds.push(RoundItem {
+        ido_account.add_round(&RoundItem {
             name: String::from("FCFS - Prepare"),
             duration_seconds: 900,
             class: RoundClass::FcfsPrepare,
@@ -120,7 +98,7 @@ pub mod crowdfunding {
             participated: vec![],
         });
 
-        ido_account._rounds.push(RoundItem {
+        ido_account.add_round(&RoundItem {
             name: String::from("FCFS"),
             duration_seconds: fcfs_duration,
             class: RoundClass::Fcfs,
@@ -160,7 +138,7 @@ pub mod crowdfunding {
 
         //push round into ido_account._rounds
         for (i, name) in name_list.iter().enumerate() {
-            ido_account._rounds.push(RoundItem {
+            ido_account.add_round(&RoundItem {
                 name: name.to_string(),
                 duration_seconds: duration_list[i],
                 class: class_list[i].clone(),
@@ -263,7 +241,7 @@ pub mod crowdfunding {
 
         //push tier into ido_account._tiers
         for (_, name) in name_list.iter().enumerate() {
-            ido_account._tiers.push(TierItem {
+            ido_account.add_tier(&TierItem {
                 name: name.to_string(),
                 allocated: vec![],
                 // allocated_count: 0,
@@ -323,9 +301,11 @@ pub mod crowdfunding {
             msg!("only authority is allowed to call this function");
             return Err(ProgramError::InvalidAccountOwner);
         }
-        //get info Ido from account address
-        ido_account._release_token = Pubkey::from_str(&token).unwrap();
-        ido_account._release_token_pair = Pubkey::from_str(&pair).unwrap();
+        let token_pubkey = &Pubkey::from_str(&token).unwrap();
+        let pair_pubkey = &Pubkey::from_str(&pair).unwrap();
+
+        ido_account.set_release_token(token_pubkey, pair_pubkey );
+
         Ok(())
     }
 
@@ -350,16 +330,8 @@ pub mod crowdfunding {
             return Err(ProgramError::InvalidArgument);
         }
 
-        ido_account._releases = vec![];
-        //get info Ido from account address
-        for (i, from_timestamp) in from_timestamps.iter().enumerate() {
-            ido_account._releases.push(ReleaseItem {
-                from_timestamp: *from_timestamp,
-                to_timestamp: to_timestamps[i],
-                percent: percents[i],
-                claimed: vec![],
-            });
-        }
+        ido_account.set_releases(&from_timestamps, &to_timestamps, &percents) ;
+
         Ok(())
     }
 
@@ -371,7 +343,7 @@ pub mod crowdfunding {
             msg!("only authority is allowed to call this function");
             return Err(ProgramError::InvalidAccountOwner);
         }
-        ido_account._closed = close;
+        ido_account.set_closed(&close);
         Ok(())
     }
 
@@ -383,8 +355,32 @@ pub mod crowdfunding {
             msg!("only authority is allowed to call this function");
             return Err(ProgramError::InvalidAccountOwner);
         }
-        ido_account._cap = cap;
+        ido_account.set_cap(&cap);
         Ok(())
+    }
+    pub fn set_rate(ctx: Context<Modifier>, rate: u16) -> ProgramResult {
+        let ido_account = &mut ctx.accounts.ido_info;
+        let user = &mut ctx.accounts.user;
+        //check owner
+        if ido_account._owner != *user.key {
+            msg!("only authority is allowed to call this function");
+            return Err(ProgramError::InvalidAccountOwner);
+        }
+        ido_account.set_rate(&rate);
+        Ok(())
+    }
+    pub fn set_open_timestamp(ctx: Context<Modifier>, open_timestamp: u32)-> ProgramResult{
+        let ido_account = &mut ctx.accounts.ido_info;
+        let user = &mut ctx.accounts.user;
+        //check owner
+        if ido_account._owner != *user.key{
+            msg!("only authority is allowed to call this function");
+            return Err(ProgramError::InvalidAccountOwner);
+        }
+        ido_account.set_open_timestamp(&open_timestamp);
+        Ok(())
+        
+
     }
 
     //doing check lai ham nay la with draw balance cua SC ve vi ca nhan
@@ -432,7 +428,7 @@ pub mod crowdfunding {
             return Err(ProgramError::InvalidArgument);
         }
 
-        let (tier, round, round_state, _, _) = _info_wallet(ido_account, user.key);
+        let (tier, round, round_state, _, _) = ido_account._info_wallet(user.key);
 
         //check state
         if round_state != 1 && round_state != 3 {
@@ -440,13 +436,12 @@ pub mod crowdfunding {
             return Err(ProgramError::ArithmeticOverflow); //
         }
         //check allocation remaining
-        let allocation_remaining = get_allocation_remaining(ido_account, &round, &tier, user.key);
+        let allocation_remaining = ido_account.get_allocation_remaining(&round, &tier, user.key);
         if allocation_remaining < amount {
             msg!("{}", "Amount exceeds remaining allocation");
             return Err(ProgramError::InvalidArgument);
         }
-        if ido_account._raise_token == Pubkey::from_str(ADDRESS_NATIVE_TOKEN).unwrap() {
-
+        if ido_account._raise_token == Pubkey::from_str(NATIVE_MINT).unwrap() {
             //get user lam port
             let user_lamport = user.get_lamports();
             //check balance
@@ -466,16 +461,7 @@ pub mod crowdfunding {
                 &[user.to_account_info(), ido_account.to_account_info()],
             )?;
         } else {
-            //get user token balance
-            //doing
-
-
-
-            //check balance
-            // if user_balance < amount {
-            //     msg!("{}", "Insufficent token balance");
-            //     return Err(ProgramError::InvalidArgument);
-            // }
+            //get amount token mint of user
 
             // transfer raise_token to account ido
             let transfer_instruction = spl_token::instruction::transfer(
@@ -507,7 +493,7 @@ pub mod crowdfunding {
         //update participated of contract
         ido_account._participated = ido_account._participated.safe_add(amount)?;
 
-        if get_participated_total(ido_account, &user.key()) == 0 {
+        if ido_account.get_participated_total(&user.key()) == 0 {
             ido_account._participated_count = ido_account._participated_count.add(1);
         }
         let sub_round = round.sub(1) as usize;
@@ -536,7 +522,7 @@ pub mod crowdfunding {
 }
 
 #[derive(Accounts)]
-pub struct CreateIdoAccount<'info> {
+pub struct InitializeIdoAccount<'info> {
     #[account(init, payer = user, space = 10000)]
     pub ido_info: Account<'info, IdoAccountInfo>,
 
@@ -560,6 +546,294 @@ pub struct IdoAccountInfo {
     pub _tiers: Vec<TierItem>,
     pub _rounds: Vec<RoundItem>,
     pub _releases: Vec<ReleaseItem>,
+}
+impl IdoAccountInfo {
+
+    
+    pub fn add_tier(&mut self, tier: &TierItem) {
+        self._tiers.push(tier.clone());
+    }
+    pub fn add_round(&mut self, round: &RoundItem) {
+        self._rounds.push(round.clone());
+    }
+    pub fn set_closed(&mut self, close: &bool){
+        self._closed = close.clone();
+
+    }
+    pub fn set_cap(&mut self, cap: &u64){
+        self._cap = cap.clone();
+
+    }
+
+    pub fn set_releases(&mut self, from_timestamps: &Vec<u32>, to_timestamps: &Vec<u32>, percents: &Vec<u16>){
+        self._releases = vec![];
+        //get info Ido from account address
+        for (i, from_timestamp) in from_timestamps.iter().enumerate() {
+            self._releases.push(ReleaseItem {
+                from_timestamp: *from_timestamp,
+                to_timestamp: to_timestamps[i],
+                percent: percents[i],
+                claimed: vec![],
+            });
+        }
+    }
+
+    pub fn set_release_token(&mut self,   token: &Pubkey, pair: &Pubkey ){
+        self._release_token = token.clone();
+        self._release_token_pair = pair.clone();
+    }
+
+    pub fn set_rate(&mut self, rate: &u16){
+        self._rate = rate.clone();
+    }
+
+    pub fn set_open_timestamp(&mut self, open_timestamps: &u32){
+        self._open_timestamp = open_timestamps.clone();
+    }
+
+    pub fn get_allocation(
+        &mut self,
+        wallet: &Pubkey,
+        index: usize,
+    ) -> (u32, u32, u16, u64, u64, u64, u64, u8) {
+        match self._releases.get(index) {
+            Some(r) => {
+                let _rate = self._rate;
+                let mut remaining = 0;
+                let percent = r.percent;
+                let from_timestamp = r.from_timestamp;
+                let to_timestamp = r.to_timestamp;
+                let participated = self.get_participated_total(wallet);
+                let raise_decimals = raise_token_decimals();
+                let release_decimals = release_token_decimals();
+    
+                let mut total = participated
+                    .safe_mul(_rate as u64)
+                    .unwrap()
+                    .safe_div(100000)
+                    .unwrap()
+                    .safe_mul(percent as u64)
+                    .unwrap()
+                    .safe_div(10000)
+                    .unwrap();
+    
+                if raise_decimals > release_decimals {
+                    let base = raise_decimals.sub(release_decimals);
+                    total = total.safe_div(base.pow(10) as u64).unwrap();
+                }
+    
+                if release_decimals > raise_decimals {
+                    let base = release_decimals.sub(raise_decimals);
+                    total = total.safe_mul(base.pow(10) as u64).unwrap();
+                }
+    
+                let mut claimable = total;
+    
+                let now_ts = Clock::get().unwrap().unix_timestamp as u32;
+    
+                match to_timestamp > from_timestamp && now_ts < to_timestamp {
+                    true => {
+                        let mut elapsed = 0;
+                        if now_ts > from_timestamp {
+                            elapsed = now_ts.safe_sub(from_timestamp).unwrap();
+                        }
+                        let duration = to_timestamp.safe_sub(from_timestamp).unwrap();
+                        claimable = total
+                            .safe_mul(elapsed as u64)
+                            .unwrap()
+                            .safe_div(duration as u64)
+                            .unwrap();
+                    }
+                    false => (),
+                }
+    
+                let claimed = r.get_claimed_of_address(wallet);
+    
+                if claimed < claimable {
+                    remaining = claimable.safe_sub(claimed).unwrap();
+                }
+    
+                let mut status = 0;
+    
+                let native_token_pub = Pubkey::from_str(NATIVE_MINT).unwrap();
+                // //check _release_token is equal publich key 1nc1nerator11111111111111111111111111111111
+                if self._release_token == native_token_pub {
+                    if from_timestamp == 0 || now_ts > from_timestamp {
+                        status = 1;
+    
+                        // check balance _release_token
+                    }
+                }
+    
+                return (
+                    from_timestamp,
+                    to_timestamp,
+                    percent,
+                    claimable,
+                    total,
+                    claimed,
+                    remaining,
+                    status,
+                );
+            }
+            None => {
+                msg!("Invalid release index");
+                return (0, 0, 0, 0, 0, 0, 0, 0);
+            }
+        }
+    }
+
+    pub fn _info_wallet(&mut self, wallet: &Pubkey) -> (u16, u16, u8, String, u32) {
+        let mut round = 0;
+        let mut round_state = 4;
+        let mut round_state_text = String::from("");
+        let mut round_timestamp = 0;
+        let is_close = self._is_close();
+        let tier = self.get_tier(wallet);
+        if !is_close {
+            let mut ts = self._open_timestamp;
+            let now_ts = Clock::get().unwrap().unix_timestamp as u32;
+    
+            if now_ts < ts {
+                round_state = 0;
+                round_state_text = String::from("Allocation Round <u>opens</u> in:");
+                round_timestamp = ts;
+            } else {
+                let rounds = self._rounds.clone();
+    
+                for (i, _round) in rounds.iter().enumerate() {
+                    round = i.add(1);
+                    ts = ts.safe_add(_round.duration_seconds).unwrap();
+    
+                    if now_ts < ts {
+                        match _round.class {
+                            RoundClass::Allocation => {
+                                round_state = 1;
+                                round_state_text = String::from("Allocation Round <u>closes</u> in:");
+                                round_timestamp = ts;
+                            }
+                            RoundClass::FcfsPrepare => {
+                                round_state = 2;
+                                round_state_text = String::from("FCFS Round <u>opens</u> in:");
+                                round_timestamp = ts;
+                            }
+                            RoundClass::Fcfs => {
+                                round_state = 3;
+                                round_state_text = String::from("FCFS Round <u>closes</u> in:");
+                                round_timestamp = ts;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    
+        return (
+            tier,
+            round as u16,
+            round_state,
+            round_state_text,
+            round_timestamp,
+        );
+    }
+    
+    pub fn close_timestamp(&self) -> u32 {
+        let mut ts = self._open_timestamp;
+        let rounds = self._rounds.clone();
+        for (_, round) in rounds.iter().enumerate() {
+            ts = ts.add(round.duration_seconds);
+        }
+        ts
+    }
+    
+    pub fn fcfs_timestamp(&self) -> u32 {
+        let mut ts = self._open_timestamp;
+        let rounds = self._rounds.clone();
+        for (_, round) in rounds.iter().enumerate() {
+            match round.class {
+                RoundClass::FcfsPrepare => {
+                    return ts;
+                }
+                RoundClass::Fcfs => {
+                    return ts;
+                }
+                _ => {
+                    ts = ts.safe_add(round.duration_seconds).unwrap();
+                }
+            }
+        }
+        return ts;
+    }
+    
+    fn _is_close(&self) -> bool {
+        let close_timestamp = self.close_timestamp();
+    
+        //get block time stamp
+        let now_ts = Clock::get().unwrap().unix_timestamp as u32;
+        //check close time  and pr
+        if self._closed
+            || now_ts >= close_timestamp
+            || self._participated >= self._cap
+        {
+            return true;
+        }
+    
+        return false;
+    }
+    
+   pub fn get_participated_total(&self, wallet: &Pubkey) -> u64 {
+        let rounds = self._rounds.clone();
+        let mut participated_total: u64 = 0;
+        for (_, round) in rounds.iter().enumerate() {
+            participated_total += round.get_participated_of_address(wallet);
+        }
+        return participated_total;
+    }
+    
+    pub fn get_tier(&self, wallet: &Pubkey) -> u16 {
+        let tiers = self._tiers.clone();
+        for (i, tier) in tiers.iter().enumerate() {
+            if tier.get_allocated(wallet) {
+                return (i + 1) as u16;
+            }
+        }
+        return 0;
+    }
+    
+    pub fn get_allocation_remaining(&self, round: &u16, tier: &u16, wallet: &Pubkey, ) -> u64 {
+        if *round == 0 || *tier == 0 {
+            return 0;
+        }
+        let round_index = round.safe_sub(1).unwrap_or(0) as usize;
+        let tier_index = tier.safe_sub(1).unwrap_or(0);
+        let tiers = self._tiers.clone();
+        let rounds = self._rounds.clone();
+    
+        match tiers.get(tier_index as usize) {
+            Some(tier) => {
+                if tier.get_allocated(wallet) {
+                    match rounds.get(round_index) {
+                        Some(round) => {
+                            let participated = round.get_participated_of_address(wallet);
+                            let allocated = round.get_tier_allocation(tier_index);
+                            if participated < allocated {
+                                return allocated.safe_sub(participated).unwrap();
+                            }
+                        }
+                        None => {
+                            return 0;
+                        }
+                    }
+                }
+            }
+            None => {
+                0;
+            }
+        }
+        return 0;
+    }
+
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
@@ -813,162 +1087,6 @@ pub struct ParticipateEvent {
  * Get info
  */
 
-fn _info_wallet(ido_account: &IdoAccountInfo, wallet: &Pubkey) -> (u16, u16, u8, String, u32) {
-    let mut round = 0;
-    let mut round_state = 4;
-    let mut round_state_text = String::from("");
-    let mut round_timestamp = 0;
-    let is_close = _is_close(ido_account);
-    let tier = get_tier(ido_account, wallet);
-
-    if !is_close {
-        let mut ts = ido_account._open_timestamp;
-        let now_ts = Clock::get().unwrap().unix_timestamp as u32;
-
-        if now_ts < ts {
-            round_state = 0;
-            round_state_text = String::from("Allocation Round <u>opens</u> in:");
-            round_timestamp = ts;
-        } else {
-            let rounds = ido_account._rounds.clone();
-
-            for (i, _round) in rounds.iter().enumerate() {
-                round = i.add(1);
-                ts = ts.safe_add(_round.duration_seconds).unwrap();
-
-                if now_ts < ts {
-                    match _round.class {
-                        RoundClass::Allocation => {
-                            round_state = 1;
-                            round_state_text = String::from("Allocation Round <u>closes</u> in:");
-                            round_timestamp = ts;
-                        }
-                        RoundClass::FcfsPrepare => {
-                            round_state = 2;
-                            round_state_text = String::from("FCFS Round <u>opens</u> in:");
-                            round_timestamp = ts;
-                        }
-                        RoundClass::Fcfs => {
-                            round_state = 3;
-                            round_state_text = String::from("FCFS Round <u>closes</u> in:");
-                            round_timestamp = ts;
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-    }
-
-    return (
-        tier,
-        round as u16,
-        round_state,
-        round_state_text,
-        round_timestamp,
-    );
-}
-
-fn close_timestamp(ido_account: &IdoAccountInfo) -> u32 {
-    let mut ts = ido_account._open_timestamp;
-    let rounds = ido_account._rounds.clone();
-    for (_, round) in rounds.iter().enumerate() {
-        ts = ts.add(round.duration_seconds);
-    }
-    ts
-}
-
-fn fcfs_timestamp(ido_account: &IdoAccountInfo) -> u32 {
-    let mut ts = ido_account._open_timestamp;
-    let rounds = ido_account._rounds.clone();
-    for (_, round) in rounds.iter().enumerate() {
-        match round.class {
-            RoundClass::FcfsPrepare => {
-                return ts;
-            }
-            RoundClass::Fcfs => {
-                return ts;
-            }
-            _ => {
-                ts = ts.safe_add(round.duration_seconds).unwrap();
-            }
-        }
-    }
-    return ts;
-}
-
-fn _is_close(ido_account: &IdoAccountInfo) -> bool {
-    let close_timestamp = close_timestamp(ido_account);
-
-    //get block time stamp
-    let now_ts = Clock::get().unwrap().unix_timestamp as u32;
-    //check close time  and pr
-    if ido_account._closed
-        || now_ts >= close_timestamp
-        || ido_account._participated >= ido_account._cap
-    {
-        return true;
-    }
-
-    return false;
-}
-
-fn get_participated_total(ido_account: &IdoAccountInfo, wallet: &Pubkey) -> u64 {
-    let rounds = ido_account._rounds.clone();
-    let mut participated_total: u64 = 0;
-    for (_, round) in rounds.iter().enumerate() {
-        participated_total += round.get_participated_of_address(wallet);
-    }
-    return participated_total;
-}
-
-fn get_tier(ido_account: &IdoAccountInfo, wallet: &Pubkey) -> u16 {
-    let tiers = ido_account._tiers.clone();
-    for (i, tier) in tiers.iter().enumerate() {
-        if tier.get_allocated(wallet) {
-            return (i + 1) as u16;
-        }
-    }
-    return 0;
-}
-
-fn get_allocation_remaining(
-    ido_account: &IdoAccountInfo,
-    round: &u16,
-    tier: &u16,
-    wallet: &Pubkey,
-) -> u64 {
-    if *round == 0 || *tier == 0 {
-        return 0;
-    }
-    let round_index = round.safe_sub(1).unwrap_or(0) as usize;
-    let tier_index = tier.safe_sub(1).unwrap_or(0);
-    let tiers = ido_account._tiers.clone();
-    let rounds = ido_account._rounds.clone();
-
-    match tiers.get(tier_index as usize) {
-        Some(tier) => {
-            if tier.get_allocated(wallet) {
-                match rounds.get(round_index) {
-                    Some(round) => {
-                        let participated = round.get_participated_of_address(wallet);
-                        let allocated = round.get_tier_allocation(tier_index);
-                        if participated < allocated {
-                            return allocated.safe_sub(participated).unwrap();
-                        }
-                    }
-                    None => {
-                        return 0;
-                    }
-                }
-            }
-        }
-        None => {
-            0;
-        }
-    }
-    return 0;
-}
 
 
 //doing
@@ -983,119 +1101,5 @@ fn raise_token_decimals() -> u8 {
 
     decimals
 }
- //doing
-fn get_allocation(
-    ido_account: &IdoAccountInfo,
-    wallet: &Pubkey,
-    index: usize,
-) -> (u32, u32, u16, u64, u64, u64, u64, u8) {
+//doing
 
-    match ido_account._releases.get(index) {
-        Some(r) => { 
-            let _rate = ido_account._rate;
-            let mut remaining = 0;
-            let percent = r.percent;
-            let from_timestamp = r.from_timestamp;
-            let to_timestamp = r.to_timestamp;
-            let participated = get_participated_total(ido_account, wallet);
-            let raise_decimals = raise_token_decimals();
-            let release_decimals = release_token_decimals();
-
-            let mut total = participated
-                .safe_mul(_rate as u64)
-                .unwrap()
-                .safe_div(100000)
-                .unwrap()
-                .safe_mul(percent as u64)
-                .unwrap()
-                .safe_div(10000)
-                .unwrap();
-
-            if raise_decimals > release_decimals {
-                let base = raise_decimals.sub(release_decimals);
-                total = total.safe_div(base.pow(10) as u64).unwrap();
-            }
-
-            if release_decimals > raise_decimals {
-                let base = release_decimals.sub(raise_decimals);
-                total = total.safe_mul(base.pow(10) as u64).unwrap();
-            }
-
-            let mut claimable  = total;
-
-            let now_ts = Clock::get().unwrap().unix_timestamp as u32;
-
-            match to_timestamp > from_timestamp && now_ts < to_timestamp {
-                true => {
-                    let mut elapsed = 0;
-                    if now_ts > from_timestamp {
-                        elapsed = now_ts.safe_sub(from_timestamp).unwrap();
-                    }
-                    let duration = to_timestamp.safe_sub(from_timestamp).unwrap();
-                    claimable = total
-                        .safe_mul(elapsed as u64)
-                        .unwrap()
-                        .safe_div(duration as u64)
-                        .unwrap();
-                }
-                false => (),
-            }
-
-            let claimed = r.get_claimed_of_address(wallet);
-
-            if claimed < claimable {
-                remaining = claimable.safe_sub(claimed).unwrap();
-            }
-
-            let mut status = 0;
-
-            let native_token_pub = &Pubkey::from_str(ADDRESS_NATIVE_TOKEN).unwrap();
-            // //check _release_token is equal publich key 1nc1nerator11111111111111111111111111111111
-            if &ido_account._release_token ==  native_token_pub {
-                if from_timestamp == 0 || now_ts > from_timestamp {
-                        status = 1;
-                       
-                        // check balance _release_token
-                       
-                }
-            }
-
-            return (
-                from_timestamp,
-                to_timestamp,
-                percent,
-                claimable,
-                total,
-                claimed,
-                remaining,
-                status,
-            );
-        }
-        None => {
-            msg!("Invalid release index");
-            return (0, 0, 0, 0, 0, 0, 0, 0);
-        }
-    }
-}
-
- fn get_token_metadata(token_id: &str) -> Option<MetaplexTokenMetadata> {
-    // Replace this with your logic to fetch metadata
-    // It might involve calling the Solana API or using the Solana SDK
-    // Return None if metadata retrieval fails
-
-    // Example: Dummy data, replace with actual retrieval logic
-    let metadata_json = fetch_metadata_json_from_solana(token_id);
-    serde_json::from_str(&metadata_json).ok()
-}
-fn fetch_metadata_json_from_solana(token_id: &str) -> String {
-    // Replace this with your logic to fetch metadata JSON from Solana
-    
-    // This function should make a request to the Solana API and return the raw JSON string
-    //implement function  request to the Solana API and return the raw JSON string
-
-    // Example: Dummy data, replace with actual retrieval logic
-
-    // It might involve calling the Solana API or using the Solana SDK
-    // Return actual metadata JSON or an empty string if retrieval fails
-    String::from("{}")
-}

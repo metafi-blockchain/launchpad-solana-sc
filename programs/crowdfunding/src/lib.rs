@@ -14,8 +14,6 @@ declare_id!("6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq");
 #[program]
 pub mod crowdfunding {
 
-    use std::{ops::Sub, str::FromStr};
-
     use super::*;
 
     pub fn initialize(
@@ -29,80 +27,16 @@ pub mod crowdfunding {
         release_token: String,
     ) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
-
-        ido_account._raise_token = Pubkey::from_str(&raise_token).unwrap();
-        ido_account._rate = rate;
-        ido_account._open_timestamp = open_timestamp;
-
-        ido_account._cap = cap;
-        ido_account._closed = false;
-        ido_account._owner = *ctx.accounts.user.key;
-
-        ido_account._release_token = Pubkey::from_str(&release_token).unwrap();
-
-        //add tier
-        ido_account.add_tier(TierItem {
-            name: String::from("Lottery Winners"),
-            allocated: vec![],
-            // allocated_count: 0,
-        });
-        ido_account.add_tier(TierItem {
-            name: String::from("Top 100"),
-            allocated: vec![],
-            // allocated_count: 0,
-        });
-        ido_account.add_tier(TierItem {
-            name: String::from("Top 200"),
-            allocated: vec![],
-            // allocated_count: 0,
-        });
-        ido_account.add_tier(TierItem {
-            name: String::from("Top 300"),
-            allocated: vec![],
-            // allocated_count: 0,
-        });
-        ido_account.add_tier(TierItem {
-            name: String::from("Top 400"),
-            allocated: vec![],
-            // allocated_count: 0,
-        });
-        ido_account.add_tier(TierItem {
-            name: String::from("Top 500"),
-            allocated: vec![],
-            // allocated_count: 0,
-        });
-        ido_account.add_tier(TierItem {
-            name: String::from("Top 600"),
-            allocated: vec![],
-            // allocated_count: 0,
-        });
-
-
-        //check lai logic add round chỗ constructor của JD tier_allocations
-        //add rounds
-        ido_account.add_round(RoundItem {
-            name: String::from("Allocation"),
-            duration_seconds: allocation_duration,
-            class: RoundClass::Allocation,
-            tier_allocations: vec![],
-            participated: vec![],
-        });
-
-        ido_account.add_round(RoundItem {
-            name: String::from("FCFS - Prepare"),
-            duration_seconds: 900,
-            class: RoundClass::FcfsPrepare,
-            tier_allocations: vec![],
-            participated: vec![],
-        });
-
-        ido_account.add_round(RoundItem {
-            name: String::from("FCFS"),
-            duration_seconds: fcfs_duration,
-            class: RoundClass::Fcfs,
-            tier_allocations: vec![],
-            participated: vec![],
-        });
+        ido_account.create_ido(
+            ctx.accounts.user.key,
+            &raise_token,
+            &rate,
+            &open_timestamp,
+            &allocation_duration,
+            &fcfs_duration,
+            &cap,
+            &release_token,
+        )?;
         msg!("Create account success!");
         Ok(())
     }
@@ -127,7 +61,12 @@ pub mod crowdfunding {
             return Err(ProgramError::InvalidArgument);
         }
 
-        ido_account.modify_rounds(ctx.accounts.user.key, &name_list, &duration_list, &class_list)?;
+        ido_account.modify_rounds(
+            ctx.accounts.user.key,
+            &name_list,
+            &duration_list,
+            &class_list,
+        )?;
 
         Ok(())
     }
@@ -140,9 +79,14 @@ pub mod crowdfunding {
         class: RoundClass,
     ) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
-        let user = &mut ctx.accounts.user;
-        ido_account.modify_round(ctx.accounts.user.key, &index, &name, &duration_seconds, &class)?;
-        
+        ido_account.modify_round(
+            ctx.accounts.user.key,
+            &index,
+            &name,
+            &duration_seconds,
+            &class,
+        )?;
+
         Ok(())
     }
 
@@ -152,10 +96,10 @@ pub mod crowdfunding {
         tier_allocations: Vec<u64>,
     ) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
-        let user = &mut ctx.accounts.user;
+
         //check owner
-        if ido_account._owner != *user.key {
-            msg!("Invalid tiers specified");
+        if !ido_account._is_admin(ctx.accounts.user.key) {
+            msg!("only authority is allowed to call this function");
             return Err(ProgramError::InvalidAccountOwner);
         }
 
@@ -165,6 +109,7 @@ pub mod crowdfunding {
             }
             None => {
                 msg!("Invalid round index");
+                return Err(ProgramError::InvalidArgument);
             }
         }
 
@@ -173,9 +118,9 @@ pub mod crowdfunding {
 
     pub fn modify_tier(ctx: Context<Modifier>, index: u32, name: String) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
-        let user = &mut ctx.accounts.user;
+
         //check owner
-        if ido_account._owner != *user.key {
+        if !ido_account._is_admin(ctx.accounts.user.key) {
             msg!("only authority is allowed to call this function");
             return Err(ProgramError::InvalidAccountOwner);
         }
@@ -186,6 +131,7 @@ pub mod crowdfunding {
             }
             None => {
                 msg!("Invalid round index");
+                return Err(ProgramError::InvalidArgument);
             }
         }
         Ok(())
@@ -201,7 +147,7 @@ pub mod crowdfunding {
             return Err(ProgramError::InvalidArgument);
         }
         //check owner
-        if ido_account._owner != *user.key {
+        if !ido_account._is_admin(user.key) {
             msg!("only authority is allowed to call this function");
             return Err(ProgramError::InvalidAccountOwner);
         }
@@ -246,7 +192,7 @@ pub mod crowdfunding {
         let token_pubkey = &Pubkey::from_str(&token).unwrap();
         let pair_pubkey = &Pubkey::from_str(&pair).unwrap();
 
-        ido_account.set_release_token(ctx.accounts.user.key, token_pubkey, pair_pubkey )?;
+        ido_account.set_release_token(ctx.accounts.user.key, token_pubkey, pair_pubkey)?;
 
         Ok(())
     }
@@ -264,7 +210,12 @@ pub mod crowdfunding {
             return Err(ProgramError::InvalidArgument);
         }
 
-        ido_account.set_releases(ctx.accounts.user.key, &from_timestamps, &to_timestamps, &percents)? ;
+        ido_account.set_releases(
+            ctx.accounts.user.key,
+            &from_timestamps,
+            &to_timestamps,
+            &percents,
+        )?;
 
         Ok(())
     }
@@ -283,10 +234,10 @@ pub mod crowdfunding {
 
     pub fn set_rate(ctx: Context<Modifier>, rate: u16) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
-        ido_account.set_rate(ctx.accounts.user.key,&rate)?;
+        ido_account.set_rate(ctx.accounts.user.key, &rate)?;
         Ok(())
     }
-    pub fn set_open_timestamp(ctx: Context<Modifier>, open_timestamp: u32)-> ProgramResult{
+    pub fn set_open_timestamp(ctx: Context<Modifier>, open_timestamp: u32) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
         ido_account.set_open_timestamp(ctx.accounts.user.key, &open_timestamp)?;
         Ok(())
@@ -299,16 +250,21 @@ pub mod crowdfunding {
         to: Pubkey,
     ) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
-        let user = &mut ctx.accounts.user;
+        let user = &ctx.accounts.user;
         // let system_program = &mut ctx.accounts.system_program;
         //check owner
-        if ido_account._owner != *user.key {
+           if !ido_account._is_admin(user.key) {
             msg!("only authority is allowed to call this function");
             return Err(ProgramError::InvalidAccountOwner);
         }
-        //transfer spl token
-        let ix =
-            anchor_lang::solana_program::system_instruction::transfer(&user.key(), &to, amount);
+
+        let rent_balance = Rent::get()?.minimum_balance(ido_account.to_account_info().data_len());
+
+        if **ido_account.to_account_info().lamports.borrow() - rent_balance < amount{
+            return Err(ProgramError::InsufficientFunds);
+        }
+
+        let ix = anchor_lang::solana_program::system_instruction::transfer(user.key, &to, amount);
         anchor_lang::solana_program::program::invoke(
             &ix,
             &[
@@ -320,7 +276,38 @@ pub mod crowdfunding {
         Ok(())
     }
 
-    //user join IDO
+    pub fn transfer_token(ctx: Context<TransferNativeToken>, token:Pubkey, amount: u64, to: Pubkey)->ProgramResult{
+        let ido_account = &mut ctx.accounts.ido_info;
+        let user = &ctx.accounts.user;
+        let system_program = &mut ctx.accounts.system_program;
+        //check owner
+           if !ido_account._is_admin(user.key) {
+            msg!("only authority is allowed to call this function");
+            return Err(ProgramError::InvalidAccountOwner);
+        }
+        //transfer spl token
+        let transfer_instruction = spl_token::instruction::transfer(
+            &token,
+            &user.key(),
+            &to,
+            &user.key(),
+            &[],
+            amount,
+        )?;
+        //invoke_sign transfer token
+        anchor_lang::solana_program::program::invoke_signed(
+            &transfer_instruction,
+            &[
+                user.to_account_info(),
+                ido_account.to_account_info(),
+                system_program.to_account_info(),
+            ],
+            &[&[&b"transfer"[..], &[0u8; 32]]],
+        )?;
+        
+        Ok(())
+    }
+    //user join IDO: need test
     pub fn participate(ctx: Context<Participate>, token: Pubkey, amount: u64) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
         let user = &ctx.accounts.user;
@@ -365,7 +352,7 @@ pub mod crowdfunding {
                 &ido_account.key(),
                 amount,
             );
-            
+
             anchor_lang::solana_program::program::invoke(
                 &ix,
                 &[user.to_account_info(), ido_account.to_account_info()],
@@ -402,15 +389,14 @@ pub mod crowdfunding {
 
         //update participated of contract
         ido_account.update_participate(&round, user.key, &amount)?;
-       
+
         Ok(())
     }
 
     //user claim token  : doing
     pub fn claim(ctx: Context<Claim>, index: u16, claimant: Pubkey) -> ProgramResult {
-
         let ido_account = &mut ctx.accounts.ido_info;
-        //check release token 
+        //check release token
         if ido_account._release_token == Pubkey::from_str(NATIVE_MINT).unwrap() {
             msg!("Native token cannot be claimed");
             return Err(ProgramError::InvalidArgument);
@@ -425,10 +411,6 @@ pub mod crowdfunding {
             msg!("Invalid claimant");
             return Err(ProgramError::InvalidArgument);
         }
-
-
-
-
 
         Ok(())
     }
@@ -453,95 +435,226 @@ pub struct IdoAccountInfo {
     pub _participated: u64,
     pub _participated_count: u32,
     pub _closed: bool,
-    pub _owner: Pubkey,
     pub _release_token: Pubkey,
     pub _release_token_pair: Pubkey,
     pub _tiers: Vec<TierItem>,
     pub _rounds: Vec<RoundItem>,
     pub _releases: Vec<ReleaseItem>,
+    _release_token_decimals: u8,
+    _raise_token_decimals: u8,
+    _owner: Pubkey,
 }
 trait IdoStrait {
-
     //setter function
+    fn create_ido(
+        &mut self,
+        user: &Pubkey,
+        raise_token: &String,
+        rate: &u16,
+        open_timestamp: &u32,
+        allocation_duration: &u32,
+        fcfs_duration: &u32,
+        cap: &u64,
+        release_token: &String,
+    ) -> ProgramResult;
+
+    fn init_tier(&mut self) -> ProgramResult;
+    fn init_rounds(&mut self, allocation_duration: &u32, fcfs_duration: &u32) -> ProgramResult;
     //admin function
-     fn add_tier(&mut self, tier: TierItem);
-     fn add_round(&mut self, round: RoundItem);
-     fn set_closed(&mut self, user: &Pubkey, close: &bool)-> ProgramResult;
-     fn set_cap(&mut self, user: &Pubkey, cap: &u64)-> ProgramResult;
-     
+    fn add_tier(&mut self, tier: TierItem);
+    fn add_round(&mut self, round: RoundItem);
+    fn set_closed(&mut self, user: &Pubkey, close: &bool) -> ProgramResult;
+    fn set_cap(&mut self, user: &Pubkey, cap: &u64) -> ProgramResult;
 
-    fn set_releases(&mut self, user: &Pubkey, from_timestamps: &Vec<u32>, to_timestamps: &Vec<u32>, percents: &Vec<u16>)-> ProgramResult;
+    fn set_releases(
+        &mut self,
+        user: &Pubkey,
+        from_timestamps: &Vec<u32>,
+        to_timestamps: &Vec<u32>,
+        percents: &Vec<u16>,
+    ) -> ProgramResult;
 
-    fn set_release_token(&mut self,   user: &Pubkey, token: &Pubkey, pair: &Pubkey )-> ProgramResult;
+    fn set_release_token(&mut self, user: &Pubkey, token: &Pubkey, pair: &Pubkey) -> ProgramResult;
 
-    fn modify_round(&mut self,   user: &Pubkey,        index: &i32, name: &String,duration_seconds: &u32,class: &RoundClass,)-> ProgramResult;
+    fn modify_round(
+        &mut self,
+        user: &Pubkey,
+        index: &i32,
+        name: &String,
+        duration_seconds: &u32,
+        class: &RoundClass,
+    ) -> ProgramResult;
 
     //check lai logic
-    fn modify_rounds(&mut self, user: &Pubkey, name_list: &Vec<String>,duration_list: &Vec<u32>, class_list: &Vec<RoundClass>)-> ProgramResult;
+    fn modify_rounds(
+        &mut self,
+        user: &Pubkey,
+        name_list: &Vec<String>,
+        duration_list: &Vec<u32>,
+        class_list: &Vec<RoundClass>,
+    ) -> ProgramResult;
 
     // modify_tier_allocated
-    fn modify_tier_allocated(&mut self, user: &Pubkey, index: &u32, addresses: &Vec<String>, remove: &bool)-> ProgramResult;
+    fn modify_tier_allocated(
+        &mut self,
+        user: &Pubkey,
+        index: &u32,
+        addresses: &Vec<String>,
+        remove: &bool,
+    ) -> ProgramResult;
 
-    fn set_rate(&mut self,  user: &Pubkey,rate: &u16)-> ProgramResult;
+    fn set_rate(&mut self, user: &Pubkey, rate: &u16) -> ProgramResult;
 
-    fn set_open_timestamp(&mut self,  user: &Pubkey, open_timestamps: &u32)-> ProgramResult;
+    fn set_open_timestamp(&mut self, user: &Pubkey, open_timestamps: &u32) -> ProgramResult;
 
     //fn participate
-    fn update_participate(&mut self, round: &u16, user: &Pubkey, amount: &u64)-> ProgramResult;
+    fn update_participate(&mut self, round: &u16, user: &Pubkey, amount: &u64) -> ProgramResult;
 
+    // fn transfer_token( token: &Pubkey, from:&Pubkey,   to: &Pubkey,  amount: u64);
+    // fn transfer_native_token( from:&Pubkey,   to: &Pubkey,  amount: u64);
 
-
+    //claim
+    fn _claim(&mut self, index: &u16, claimant: &Pubkey) -> ProgramResult;
 
     //getter function
     fn get_info_ido(&self) -> IdoAccountInfo;
-    fn is_admin(&self, user :&Pubkey) -> bool;
+    fn _is_admin(&self, user: &Pubkey) -> bool;
 
-    fn _get_allocation( &mut self, wallet: &Pubkey, index: usize) -> (u32, u32, u16, u64, u64, u64, u64, u8);
+    fn _get_allocation(
+        &mut self,
+        wallet: &Pubkey,
+        index: usize,
+    ) -> (u32, u32, u16, u64, u64, u64, u64, u8);
 
     fn _info_wallet(&mut self, wallet: &Pubkey) -> (u16, u16, u8, String, u32);
-    
+
     fn close_timestamp(&self) -> u32;
-    
-     fn fcfs_timestamp(&self) -> u32;
-    
+
+    fn fcfs_timestamp(&self) -> u32;
+
     fn _is_close(&self) -> bool;
-    
+
     fn get_participated_total(&self, wallet: &Pubkey) -> u64;
-    
+
     fn get_tier(&self, wallet: &Pubkey) -> u16;
-    
-    fn get_allocation_remaining(&self, round: &u16, tier: &u16, wallet: &Pubkey, ) -> u64;
 
-    //doing
-    fn release_token_decimals(&self) -> u8;
-    //doing
-    fn raise_token_decimals(&self) -> u8;
-
+    fn get_allocation_remaining(&self, round: &u16, tier: &u16, wallet: &Pubkey) -> u64;
 }
 
 impl IdoStrait for IdoAccountInfo {
+    //implement create function
+    fn create_ido(
+        &mut self,
+        user: &Pubkey,
+        raise_token: &String,
+        rate: &u16,
+        open_timestamp: &u32,
+        allocation_duration: &u32,
+        fcfs_duration: &u32,
+        cap: &u64,
+        release_token: &String,
+    ) -> ProgramResult {
+        self._raise_token = Pubkey::from_str(raise_token).unwrap();
+        self._raise_token_decimals = 9; //hardcode
+        self._rate = *rate;
+        self._open_timestamp = *open_timestamp;
+        self._cap = *cap;
+        self._closed = false;
+        self._owner = *user;
+        self._release_token = Pubkey::from_str(release_token).unwrap();
+        self.init_tier()?;
+        self.init_rounds(allocation_duration, fcfs_duration)?;
+        Ok(())
+    }
 
+    fn init_tier(&mut self) -> ProgramResult {
+        //add tier
+        self.add_tier(TierItem {
+            name: String::from("Lottery Winners"),
+            allocated: vec![],
+            // allocated_count: 0,
+        });
+        self.add_tier(TierItem {
+            name: String::from("Top 100"),
+            allocated: vec![],
+            // allocated_count: 0,
+        });
+        self.add_tier(TierItem {
+            name: String::from("Top 200"),
+            allocated: vec![],
+            // allocated_count: 0,
+        });
+        self.add_tier(TierItem {
+            name: String::from("Top 300"),
+            allocated: vec![],
+            // allocated_count: 0,
+        });
+        self.add_tier(TierItem {
+            name: String::from("Top 400"),
+            allocated: vec![],
+            // allocated_count: 0,
+        });
+        self.add_tier(TierItem {
+            name: String::from("Top 500"),
+            allocated: vec![],
+            // allocated_count: 0,
+        });
+        self.add_tier(TierItem {
+            name: String::from("Top 600"),
+            allocated: vec![],
+            // allocated_count: 0,
+        });
+        Ok(())
+    }
+    fn init_rounds(&mut self, allocation_duration: &u32, fcfs_duration: &u32) -> ProgramResult {
+        //check lai logic add round chỗ constructor của JD tier_allocations
+        //add rounds
+        self.add_round(RoundItem {
+            name: String::from("Allocation"),
+            duration_seconds: *allocation_duration,
+            class: RoundClass::Allocation,
+            tier_allocations: vec![],
+            participated: vec![],
+        });
 
-    
+        self.add_round(RoundItem {
+            name: String::from("FCFS - Prepare"),
+            duration_seconds: 900,
+            class: RoundClass::FcfsPrepare,
+            tier_allocations: vec![],
+            participated: vec![],
+        });
+
+        self.add_round(RoundItem {
+            name: String::from("FCFS"),
+            duration_seconds: *fcfs_duration,
+            class: RoundClass::Fcfs,
+            tier_allocations: vec![],
+            participated: vec![],
+        });
+
+        Ok(())
+    }
+
     fn add_tier(&mut self, tier: TierItem) {
         self._tiers.push(tier);
     }
 
-     fn add_round(&mut self, round: RoundItem) {
+    fn add_round(&mut self, round: RoundItem) {
         self._rounds.push(round);
     }
 
-     fn set_closed(&mut self,user: &Pubkey, close: &bool)-> ProgramResult{
-        if !self.is_admin(user) {
+    fn set_closed(&mut self, user: &Pubkey, close: &bool) -> ProgramResult {
+        if !self._is_admin(user) {
             msg!("only authority is allowed to call this function");
             return Err(ProgramError::InvalidAccountOwner);
         }
         self._closed = *close;
         Ok(())
     }
-     fn set_cap(&mut self, user: &Pubkey, cap: &u64) -> ProgramResult{
 
-        if !self.is_admin(user) {
+    fn set_cap(&mut self, user: &Pubkey, cap: &u64) -> ProgramResult {
+        if !self._is_admin(user) {
             msg!("only authority is allowed to call this function");
             return Err(ProgramError::InvalidAccountOwner);
         }
@@ -549,8 +662,14 @@ impl IdoStrait for IdoAccountInfo {
         Ok(())
     }
 
-    fn set_releases(&mut self, user: &Pubkey, from_timestamps: &Vec<u32>, to_timestamps: &Vec<u32>, percents: &Vec<u16>)-> ProgramResult{
-        if !self.is_admin(user) {
+    fn set_releases(
+        &mut self,
+        user: &Pubkey,
+        from_timestamps: &Vec<u32>,
+        to_timestamps: &Vec<u32>,
+        percents: &Vec<u16>,
+    ) -> ProgramResult {
+        if !self._is_admin(user) {
             msg!("only authority is allowed to call this function");
             return Err(ProgramError::InvalidAccountOwner);
         }
@@ -567,19 +686,29 @@ impl IdoStrait for IdoAccountInfo {
         Ok(())
     }
 
-    fn set_release_token(&mut self,  user: &Pubkey, token: &Pubkey, pair: &Pubkey )-> ProgramResult{
-        if !self.is_admin(user) {
+    fn set_release_token(&mut self, user: &Pubkey, token: &Pubkey, pair: &Pubkey) -> ProgramResult {
+        if !self._is_admin(user) {
             msg!("only authority is allowed to call this function");
             return Err(ProgramError::InvalidAccountOwner);
         }
         self._release_token = *token;
         self._release_token_pair = *pair;
 
+        //doing
+        self._release_token_decimals = 9; //hardcode
+
         Ok(())
     }
 
-    fn modify_round(&mut self,   user: &Pubkey,        index: &i32, name: &String,duration_seconds: &u32,class: &RoundClass,)-> ProgramResult{
-        if !self.is_admin(user) {
+    fn modify_round(
+        &mut self,
+        user: &Pubkey,
+        index: &i32,
+        name: &String,
+        duration_seconds: &u32,
+        class: &RoundClass,
+    ) -> ProgramResult {
+        if !self._is_admin(user) {
             msg!("only authority is allowed to call this function");
             return Err(ProgramError::InvalidAccountOwner);
         }
@@ -598,9 +727,14 @@ impl IdoStrait for IdoAccountInfo {
         Ok(())
     }
 
-
-    fn modify_rounds(&mut self,  user: &Pubkey, name_list: &Vec<String>,  duration_list: &Vec<u32>, class_list: &Vec<RoundClass>) -> ProgramResult{
-        if !self.is_admin(user) {
+    fn modify_rounds(
+        &mut self,
+        user: &Pubkey,
+        name_list: &Vec<String>,
+        duration_list: &Vec<u32>,
+        class_list: &Vec<RoundClass>,
+    ) -> ProgramResult {
+        if !self._is_admin(user) {
             msg!("only authority is allowed to call this function");
             return Err(ProgramError::InvalidAccountOwner);
         }
@@ -618,9 +752,16 @@ impl IdoStrait for IdoAccountInfo {
         }
         Ok(())
     }
+
     //modify_tier_allocated
-    fn modify_tier_allocated(&mut self, user: &Pubkey, index: &u32, addresses: &Vec<String>, remove: &bool)-> ProgramResult{
-        if !self.is_admin(user) {
+    fn modify_tier_allocated(
+        &mut self,
+        user: &Pubkey,
+        index: &u32,
+        addresses: &Vec<String>,
+        remove: &bool,
+    ) -> ProgramResult {
+        if !self._is_admin(user) {
             msg!("only authority is allowed to call this function");
             return Err(ProgramError::InvalidAccountOwner);
         }
@@ -646,8 +787,8 @@ impl IdoStrait for IdoAccountInfo {
         Ok(())
     }
 
-     fn set_rate(&mut self,  user: &Pubkey, rate: &u16)-> ProgramResult{
-        if !self.is_admin(user) {
+    fn set_rate(&mut self, user: &Pubkey, rate: &u16) -> ProgramResult {
+        if !self._is_admin(user) {
             msg!("only authority is allowed to call this function");
             return Err(ProgramError::InvalidAccountOwner);
         }
@@ -655,8 +796,8 @@ impl IdoStrait for IdoAccountInfo {
         Ok(())
     }
 
-     fn set_open_timestamp(&mut self,  user: &Pubkey, open_timestamps: &u32)-> ProgramResult{
-        if !self.is_admin(user) {
+    fn set_open_timestamp(&mut self, user: &Pubkey, open_timestamps: &u32) -> ProgramResult {
+        if !self._is_admin(user) {
             msg!("only authority is allowed to call this function");
             return Err(ProgramError::InvalidAccountOwner);
         }
@@ -665,10 +806,9 @@ impl IdoStrait for IdoAccountInfo {
     }
 
     //implement fn participate
-    fn update_participate(&mut self,  round: &u16, user: &Pubkey, amount: &u64)-> ProgramResult{
-         
-            //update participated of contract
-            self._participated = self._participated.safe_add(*amount)?;
+    fn update_participate(&mut self, round: &u16, user: &Pubkey, amount: &u64) -> ProgramResult {
+        //update participated of contract
+        self._participated = self._participated.safe_add(*amount)?;
 
         if self.get_participated_total(user) == 0 {
             self._participated_count = self._participated_count.add(1);
@@ -677,9 +817,7 @@ impl IdoStrait for IdoAccountInfo {
 
         match self._rounds.get_mut(sub_round) {
             Some(mut _r) => {
-                let _participated = _r
-                    .get_participated_of_address(user)
-                    .safe_add(*amount)?;
+                let _participated = _r.get_participated_of_address(user).safe_add(*amount)?;
                 //update participated of user
                 _r.set_participated_of_address(user, &_participated);
             }
@@ -690,16 +828,29 @@ impl IdoStrait for IdoAccountInfo {
         }
 
         Ok(())
+    }
+    //fn transfer_Token
+   
 
+    //implement function _claim
+    fn _claim(&mut self, index: &u16, claimant: &Pubkey) -> ProgramResult {
+        let native_token_pub = Pubkey::from_str(NATIVE_MINT).unwrap();
+
+        if self._release_token == native_token_pub {
+            msg!("Release token not yet defined");
+            return Err(ProgramError::InvalidArgument);
+        }
+        //emit ClaimEvent
+        emit!(ClaimEvent {
+            index: *index,
+            address: *claimant,
+            remaining: 0
+        });
+        Ok(())
     }
 
-
-
-
-
-
-    fn is_admin(&self, user: &Pubkey) -> bool{
-         self._owner == *user
+    fn _is_admin(&self, user: &Pubkey) -> bool {
+        self._owner == *user
     }
 
     fn _get_allocation(
@@ -715,9 +866,9 @@ impl IdoStrait for IdoAccountInfo {
                 let from_timestamp = r.from_timestamp;
                 let to_timestamp = r.to_timestamp;
                 let participated = self.get_participated_total(wallet);
-                let raise_decimals = self.raise_token_decimals();
-                let release_decimals = self.release_token_decimals();
-    
+                let raise_decimals = self._raise_token_decimals;
+                let release_decimals = self._release_token_decimals;
+
                 let mut total = participated
                     .safe_mul(_rate as u64)
                     .unwrap()
@@ -727,21 +878,21 @@ impl IdoStrait for IdoAccountInfo {
                     .unwrap()
                     .safe_div(10000)
                     .unwrap();
-    
+
                 if raise_decimals > release_decimals {
                     let base = raise_decimals.sub(release_decimals);
                     total = total.safe_div(base.pow(10) as u64).unwrap();
                 }
-    
+
                 if release_decimals > raise_decimals {
                     let base = release_decimals.sub(raise_decimals);
                     total = total.safe_mul(base.pow(10) as u64).unwrap();
                 }
-    
+
                 let mut claimable = total;
-    
+
                 let now_ts = Clock::get().unwrap().unix_timestamp as u32;
-    
+
                 match to_timestamp > from_timestamp && now_ts < to_timestamp {
                     true => {
                         let mut elapsed = 0;
@@ -757,15 +908,15 @@ impl IdoStrait for IdoAccountInfo {
                     }
                     false => (),
                 }
-    
+
                 let claimed = r.get_claimed_of_address(wallet);
-    
+
                 if claimed < claimable {
                     remaining = claimable.safe_sub(claimed).unwrap();
                 }
-    
+
                 let mut status = 0;
-    
+
                 let native_token_pub = Pubkey::from_str(NATIVE_MINT).unwrap();
                 // //check _release_token is equal publich key 1nc1nerator11111111111111111111111111111111
                 if self._release_token == native_token_pub {
@@ -776,7 +927,7 @@ impl IdoStrait for IdoAccountInfo {
                         // check balance _release_token
                     }
                 }
-    
+
                 return (
                     from_timestamp,
                     to_timestamp,
@@ -805,23 +956,24 @@ impl IdoStrait for IdoAccountInfo {
         if !is_close {
             let mut ts = self._open_timestamp;
             let now_ts = Clock::get().unwrap().unix_timestamp as u32;
-    
+
             if now_ts < ts {
                 round_state = 0;
                 round_state_text = String::from("Allocation Round <u>opens</u> in:");
                 round_timestamp = ts;
             } else {
                 let rounds = self._rounds.clone();
-    
+
                 for (i, _round) in rounds.iter().enumerate() {
                     round = i.add(1);
                     ts = ts.safe_add(_round.duration_seconds).unwrap();
-    
+
                     if now_ts < ts {
                         match _round.class {
                             RoundClass::Allocation => {
                                 round_state = 1;
-                                round_state_text = String::from("Allocation Round <u>closes</u> in:");
+                                round_state_text =
+                                    String::from("Allocation Round <u>closes</u> in:");
                                 round_timestamp = ts;
                             }
                             RoundClass::FcfsPrepare => {
@@ -840,7 +992,7 @@ impl IdoStrait for IdoAccountInfo {
                 }
             }
         }
-    
+
         return (
             tier,
             round as u16,
@@ -849,7 +1001,7 @@ impl IdoStrait for IdoAccountInfo {
             round_timestamp,
         );
     }
-    
+
     fn close_timestamp(&self) -> u32 {
         let mut ts = self._open_timestamp;
         let rounds = self._rounds.clone();
@@ -858,8 +1010,8 @@ impl IdoStrait for IdoAccountInfo {
         }
         ts
     }
-    
-     fn fcfs_timestamp(&self) -> u32 {
+
+    fn fcfs_timestamp(&self) -> u32 {
         let mut ts = self._open_timestamp;
         let rounds = self._rounds.clone();
         for (_, round) in rounds.iter().enumerate() {
@@ -877,23 +1029,20 @@ impl IdoStrait for IdoAccountInfo {
         }
         return ts;
     }
-    
+
     fn _is_close(&self) -> bool {
         let close_timestamp = self.close_timestamp();
-    
+
         //get block time stamp
         let now_ts = Clock::get().unwrap().unix_timestamp as u32;
         //check close time  and pr
-        if self._closed
-            || now_ts >= close_timestamp
-            || self._participated >= self._cap
-        {
+        if self._closed || now_ts >= close_timestamp || self._participated >= self._cap {
             return true;
         }
-    
+
         return false;
     }
-    
+
     fn get_participated_total(&self, wallet: &Pubkey) -> u64 {
         let rounds = self._rounds.clone();
         let mut participated_total: u64 = 0;
@@ -902,8 +1051,8 @@ impl IdoStrait for IdoAccountInfo {
         }
         return participated_total;
     }
-    
-     fn get_tier(&self, wallet: &Pubkey) -> u16 {
+
+    fn get_tier(&self, wallet: &Pubkey) -> u16 {
         let tiers = self._tiers.clone();
         for (i, tier) in tiers.iter().enumerate() {
             if tier.get_allocated(wallet) {
@@ -912,8 +1061,8 @@ impl IdoStrait for IdoAccountInfo {
         }
         return 0;
     }
-    
-     fn get_allocation_remaining(&self, round: &u16, tier: &u16, wallet: &Pubkey, ) -> u64 {
+
+    fn get_allocation_remaining(&self, round: &u16, tier: &u16, wallet: &Pubkey) -> u64 {
         if *round == 0 || *tier == 0 {
             return 0;
         }
@@ -921,7 +1070,7 @@ impl IdoStrait for IdoAccountInfo {
         let tier_index = tier.safe_sub(1).unwrap_or(0);
         let tiers = self._tiers.clone();
         let rounds = self._rounds.clone();
-    
+
         match tiers.get(tier_index as usize) {
             Some(tier) => {
                 if tier.get_allocated(wallet) {
@@ -946,23 +1095,9 @@ impl IdoStrait for IdoAccountInfo {
         return 0;
     }
 
-    //doing
-    fn release_token_decimals(&self) -> u8 {
-        let mut decimals = 9;
-
-        decimals
-    }
-    //doing
-    fn raise_token_decimals(&self) -> u8 {
-        let mut decimals = 9;
-
-        decimals
-    }
-
     fn get_info_ido(&self) -> IdoAccountInfo {
         self.clone()
     }
-
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
@@ -1211,11 +1346,11 @@ pub struct ParticipateEvent {
     pub amount: u64,
     pub address: Pubkey,
 }
-
-
-
-
-
+#[event]
+pub struct ClaimEvent {
+    pub index: u16,
+    pub address: Pubkey,
+    pub remaining: u64,
+}
 
 //doing
-

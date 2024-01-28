@@ -501,7 +501,7 @@ trait IdoStrait {
         index: &u32,
         addresses: &Vec<String>,
         remove: &bool,
-    ) -> Result<()>;
+    ) -> ProgramResult;
 
     fn set_rate(&mut self, user: &Pubkey, rate: &u16) -> ProgramResult;
 
@@ -760,9 +760,10 @@ impl IdoStrait for IdoAccountInfo {
         index: &u32,
         addresses: &Vec<String>,
         remove: &bool,
-    ) -> Result<()> {
+    ) -> ProgramResult {
         if !self._is_admin(user) {
-            return err!(ProgramErrors::PdaNotMatched);
+            msg!("only authority is allowed to call this function");
+            return Err(ProgramError::InvalidAccountOwner);
         }
 
         match self._tiers.get_mut(*index as usize) {
@@ -779,8 +780,8 @@ impl IdoStrait for IdoAccountInfo {
                 }
             }
             None => {
-                // msg!("Invalid round index");
-                return err!(ProgramErrors::InvalidInDex);
+                msg!("Invalid round index");
+                return Err(ProgramError::InvalidArgument);
             }
         }
         Ok(())
@@ -1352,13 +1353,4 @@ pub struct ClaimEvent {
     pub remaining: u64,
 }
 
-#[error_code]
-pub enum ProgramErrors {
-    #[msg("PDA account not matched")]
-    PdaNotMatched,
-    #[msg("Only authority is allowed to call this function")]
-    NotAuthorized,
-    #[msg("Invalid round index")]
-    InvalidInDex,
-
-}
+//doing

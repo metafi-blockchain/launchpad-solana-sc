@@ -313,16 +313,12 @@ pub mod crowdfunding {
         Ok(())
     }
     //user join IDO: need test
-    pub fn participate(ctx: Context<Participate>, token: Pubkey, amount: u64) -> ProgramResult {
+    pub fn participate(ctx: Context<Participate>, amount: u64) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
         let user = &ctx.accounts.user;
         let system_program = &ctx.accounts.system_program;
 
-        //check token is valid
-        if ido_account._raise_token != token && check_id(&token) {
-            msg!("{}", "Incorrect token specified");
-            return Err(ProgramError::InvalidArgument);
-        }
+
         //check amount
         if amount == 0 {
             msg!("{}", "Amount must be greater than 0");
@@ -395,6 +391,43 @@ pub mod crowdfunding {
         //update participated of contract
         ido_account.update_participate(&round, user.key, &amount)?;
 
+        Ok(())
+    }
+
+    pub fn test_participate(ctx: Context<Participate>, amount: u64)->ProgramResult{
+
+        msg!("test participate");
+        let ido_account = &mut ctx.accounts.ido_info;
+        let user = &ctx.accounts.user;
+        let system_program = &ctx.accounts.system_program;
+        // transfer raise_token to account ido
+        let transfer_instruction = spl_token::instruction::transfer(
+            &ido_account._raise_token.key(),
+            &user.key(),
+            &ido_account.key(),
+            &user.key(),
+            &[],
+            amount,
+        )?;
+
+        anchor_lang::solana_program::program::invoke_signed(
+            &transfer_instruction,
+            &[
+                user.to_account_info(),
+                ido_account.to_account_info(),
+                system_program.to_account_info(),
+            ],
+            &[&[&b"transfer"[..], &[0u8; 32]]],
+        )?;
+
+        //emit event transfer
+        emit!(ParticipateEvent {
+            amount: amount,
+            address: *user.key,
+        });
+
+        //update participated of contract
+        // ido_account.update_participate(&round, user.key, &amount)?;
         Ok(())
     }
 

@@ -2,7 +2,8 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::entrypoint::ProgramResult;
 use anchor_lang::AnchorDeserialize;
 use anchor_lang::AnchorSerialize;
-
+use anchor_spl::{token::{TokenAccount, Mint,Token}};
+use anchor_spl::token::Transfer;
 use solana_safe_math::SafeMath;
 use std::ops::Add;
 use std::ops::Sub;
@@ -192,7 +193,7 @@ pub mod crowdfunding {
     ) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
 
-        let token_info: &Account<'_, anchor_spl::token::Mint> =&ctx.accounts.token_info;
+        let token_info: &Account<'_, Mint> =&ctx.accounts.token_info;
 
         let token_pubkey = &Pubkey::from_str(&token).unwrap();
         let pair_pubkey = &Pubkey::from_str(&pair).unwrap();
@@ -269,14 +270,17 @@ pub mod crowdfunding {
             return Err(ProgramError::InsufficientFunds);
         }
 
-        let ix = anchor_lang::solana_program::system_instruction::transfer(user.key, &to, amount);
-        anchor_lang::solana_program::program::invoke(
-            &ix,
-            &[
-                ctx.accounts.user.to_account_info(),
-                ctx.accounts.ido_info.to_account_info(),
-            ],
-        )?;
+        **ido_account.to_account_info().try_borrow_mut_lamports()? -= amount;
+        **user.to_account_info().try_borrow_mut_lamports()? += amount;
+
+        // let ix = anchor_lang::solana_program::system_instruction::transfer(user.key, &to, amount);
+        // anchor_lang::solana_program::program::invoke(
+        //     &ix,
+        //     &[
+        //         ctx.accounts.user.to_account_info(),
+        //         ctx.accounts.ido_info.to_account_info(),
+        //     ],
+        // )?;
 
         Ok(())
     }
@@ -338,6 +342,7 @@ pub mod crowdfunding {
             msg!("{}", "Amount exceeds remaining allocation");
             return Err(ProgramError::InvalidArgument);
         }
+
         if ido_account._raise_token == Pubkey::from_str(NATIVE_MINT).unwrap() {
             //get user lam port
             let user_lamport = user.get_lamports();
@@ -347,39 +352,22 @@ pub mod crowdfunding {
                 return Err(ProgramError::InvalidArgument);
             }
 
-            //send sol to account ido address
-            let ix = anchor_lang::solana_program::system_instruction::transfer(
+            let instruction =  anchor_lang::solana_program::system_instruction::transfer(
                 &user.key(),
                 &ido_account.key(),
-                amount,
+                amount
             );
-
             anchor_lang::solana_program::program::invoke(
-                &ix,
-                &[user.to_account_info(), ido_account.to_account_info()],
+                &instruction,
+                &[
+                    user.to_account_info(),
+                    ido_account.to_account_info(),
+                ]
             )?;
         } else {
             //get amount token mint of user
 
-            // transfer raise_token to account ido
-            let transfer_instruction = spl_token::instruction::transfer(
-                &ido_account._raise_token.key(),
-                &user.key(),
-                &ido_account.key(),
-                &user.key(),
-                &[],
-                amount,
-            )?;
-
-            anchor_lang::solana_program::program::invoke_signed(
-                &transfer_instruction,
-                &[
-                    user.to_account_info(),
-                    ido_account.to_account_info(),
-                    system_program.to_account_info(),
-                ],
-                &[&[&b"transfer"[..], &[0u8; 32]]],
-            )?;
+            
         }
 
         //emit event transfer
@@ -397,28 +385,43 @@ pub mod crowdfunding {
     pub fn test_participate(ctx: Context<Participate>, amount: u64)->ProgramResult{
 
         msg!("test participate");
-        let ido_account = &mut ctx.accounts.ido_info;
-        let user = &ctx.accounts.user;
-        let system_program = &ctx.accounts.system_program;
-        // transfer raise_token to account ido
-        let transfer_instruction = spl_token::instruction::transfer(
-            &ido_account._raise_token.key(),
-            &user.key(),
-            &ido_account.key(),
-            &user.key(),
-            &[],
-            amount,
-        )?;
+        // let ido_account = &mut ctx.accounts.ido_info;
 
-        anchor_lang::solana_program::program::invoke_signed(
-            &transfer_instruction,
+        let user = &ctx.accounts.user;
+
+
+        let instruction =  anchor_lang::solana_program::system_instruction::transfer(
+            &ctx.accounts.user.key(),
+            &ctx.accounts.ido_info.key(),
+            amount
+        );
+        anchor_lang::solana_program::program::invoke(
+            &instruction,
             &[
-                user.to_account_info(),
-                ido_account.to_account_info(),
-                system_program.to_account_info(),
-            ],
-            &[&[&b"transfer"[..], &[0u8; 32]]],
+                ctx.accounts.user.to_account_info(),
+                ctx.accounts.ido_info.to_account_info(),
+            ]
         )?;
+        ctx.accounts.ido_info._participated_count += 1;
+        // ido_account._participated_count.add(1);
+        // transfer raise_token to account ido
+        // let transfer_instruction = Transfer { 
+        //     from : user.to_account_info(),
+        //     to : ido_account.to_account_info(),
+        //     authority: user.to_account_info()
+        
+        // };
+        // let dep=&mut ctx.accounts.deposit_token_account.key();
+        // let sender: &Signer<'_> = &ctx.accounts.user;
+        // let inner=vec![sender.key.as_ref(),dep.as_ref(),"state".as_ref()];
+        // let outer=vec![inner.as_slice()];
+        // let cpi_ctx = CpiContext::new_with_signer(
+        //     ctx.accounts.system_program.to_account_info(),
+        //     transfer_instruction,
+        //     outer.as_slice(),
+        // );
+        // anchor_spl::token::transfer(cpi_ctx, amount)?;
+
 
         //emit event transfer
         emit!(ParticipateEvent {
@@ -426,7 +429,7 @@ pub mod crowdfunding {
             address: *user.key,
         });
 
-        //update participated of contract
+        // update participated of contract
         // ido_account.update_participate(&round, user.key, &amount)?;
         Ok(())
     }
@@ -460,7 +463,7 @@ pub struct InitializeIdoAccount<'info> {
     pub ido_info: Account<'info, IdoAccountInfo>,
 
     #[account()]
-    pub token_info: Account<'info, anchor_spl::token::Mint>,
+    pub token_info: Account<'info, Mint>,
 
     #[account(mut)]
     pub user: Signer<'info>,
@@ -1314,7 +1317,7 @@ pub struct SetupReleaseToken<'info> {
     pub user: Signer<'info>,
 
     #[account()]
-    pub token_info: Account<'info, anchor_spl::token::Mint>,
+    pub token_info: Account<'info, Mint>,
 
     pub system_program: Program<'info, System>,
 }
@@ -1334,10 +1337,15 @@ pub struct Participate<'info> {
     #[account(mut)]
     pub ido_info: Account<'info, IdoAccountInfo>,
 
+    // #[account(mut)]
+    // pub deposit_token_account:  Account<'info, TokenAccount>,
+
     #[account(mut)]
     pub user: Signer<'info>,
 
     pub system_program: Program<'info, System>,
+
+    // pub rent: Sysvar<'info, Rent>,
 }
 
 #[derive(Accounts)]
@@ -1407,5 +1415,7 @@ pub enum ProgramErrors {
     NotAuthorized,
     #[msg("Invalid round index")]
     InvalidInDex,
+    #[msg("Insufficient amount to withdraw.")]
+    InvalidWithdrawAmount,
 
 }

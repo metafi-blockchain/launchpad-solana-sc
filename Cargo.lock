@@ -208,7 +208,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c4fd6e43b2ca6220d2ef1641539e678bfc31b6cc393cf892b373b5997b6a39a"
 dependencies = [
  "anchor-lang",
- "mpl-token-metadata 3.2.3",
+ "mpl-token-metadata",
  "solana-program",
  "spl-associated-token-account",
  "spl-token",
@@ -735,7 +735,6 @@ dependencies = [
  "ahash 0.8.6",
  "anchor-lang",
  "anchor-spl",
- "mpl-token-metadata 2.0.0",
  "solana-safe-math",
  "spl-token",
 ]
@@ -1244,17 +1243,6 @@ dependencies = [
  "keccak",
  "rand_core 0.6.4",
  "zeroize",
-]
-
-[[package]]
-name = "mpl-token-metadata"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6ce4ae029eeb2a93db200ba05e327adea1631027bb672ade015887fece72f8b"
-dependencies = [
- "borsh 0.10.3",
- "solana-program",
- "spl-program-error",
 ]
 
 [[package]]

@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::entrypoint::ProgramResult;
 use anchor_lang::AnchorDeserialize;
 use anchor_lang::AnchorSerialize;
+
 use solana_safe_math::SafeMath;
 use std::ops::Add;
 use std::ops::Sub;
@@ -27,9 +28,11 @@ pub mod crowdfunding {
         release_token: String,
     ) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
+        let token_info = &ctx.accounts.token_info;
         ido_account.create_ido(
             ctx.accounts.user.key,
             &raise_token,
+            &token_info.decimals,
             &rate,
             &open_timestamp,
             &allocation_duration,
@@ -189,10 +192,12 @@ pub mod crowdfunding {
     ) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
 
+        let token_info: &Account<'_, anchor_spl::token::Mint> =&ctx.accounts.token_info;
+
         let token_pubkey = &Pubkey::from_str(&token).unwrap();
         let pair_pubkey = &Pubkey::from_str(&pair).unwrap();
-
-        ido_account.set_release_token(ctx.accounts.user.key, token_pubkey, pair_pubkey)?;
+        let decimals = token_info.decimals;
+        ido_account.set_release_token(ctx.accounts.user.key, token_pubkey, pair_pubkey , &decimals)?;
 
         Ok(())
     }
@@ -421,6 +426,9 @@ pub struct InitializeIdoAccount<'info> {
     #[account(init, payer = user, space = 10000)]
     pub ido_info: Account<'info, IdoAccountInfo>,
 
+    #[account()]
+    pub token_info: Account<'info, anchor_spl::token::Mint>,
+
     #[account(mut)]
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -450,6 +458,7 @@ trait IdoStrait {
         &mut self,
         user: &Pubkey,
         raise_token: &String,
+        decimals: &u8,
         rate: &u16,
         open_timestamp: &u32,
         allocation_duration: &u32,
@@ -474,7 +483,7 @@ trait IdoStrait {
         percents: &Vec<u16>,
     ) -> ProgramResult;
 
-    fn set_release_token(&mut self, user: &Pubkey, token: &Pubkey, pair: &Pubkey) -> ProgramResult;
+    fn set_release_token(&mut self, user: &Pubkey, token: &Pubkey, pair: &Pubkey, token_decimals: &u8) -> ProgramResult;
 
     fn modify_round(
         &mut self,
@@ -547,6 +556,7 @@ impl IdoStrait for IdoAccountInfo {
         &mut self,
         user: &Pubkey,
         raise_token: &String,
+        decimals: &u8,
         rate: &u16,
         open_timestamp: &u32,
         allocation_duration: &u32,
@@ -554,8 +564,9 @@ impl IdoStrait for IdoAccountInfo {
         cap: &u64,
         release_token: &String,
     ) -> ProgramResult {
+
         self._raise_token = Pubkey::from_str(raise_token).unwrap();
-        self._raise_token_decimals = 9; //hardcode
+        self._raise_token_decimals = *decimals; 
         self._rate = *rate;
         self._open_timestamp = *open_timestamp;
         self._cap = *cap;
@@ -686,7 +697,7 @@ impl IdoStrait for IdoAccountInfo {
         Ok(())
     }
 
-    fn set_release_token(&mut self, user: &Pubkey, token: &Pubkey, pair: &Pubkey) -> ProgramResult {
+    fn set_release_token(&mut self, user: &Pubkey, token: &Pubkey, pair: &Pubkey, token_decimals: &u8) -> ProgramResult {
         if !self._is_admin(user) {
             msg!("only authority is allowed to call this function");
             return Err(ProgramError::InvalidAccountOwner);
@@ -695,7 +706,7 @@ impl IdoStrait for IdoAccountInfo {
         self._release_token_pair = *pair;
 
         //doing
-        self._release_token_decimals = 9; //hardcode
+        self._release_token_decimals = *token_decimals; //hardcode
 
         Ok(())
     }
@@ -1268,6 +1279,9 @@ pub struct SetupReleaseToken<'info> {
 
     #[account(mut)]
     pub user: Signer<'info>,
+
+    #[account()]
+    pub token_info: Account<'info, anchor_spl::token::Mint>,
 
     pub system_program: Program<'info, System>,
 }

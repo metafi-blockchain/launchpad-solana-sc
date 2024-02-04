@@ -11,7 +11,7 @@
           "isSigner": true
         },
         {
-          "name": "tokenInfo",
+          "name": "tokenMint",
           "isMut": false,
           "isSigner": false
         },
@@ -21,7 +21,27 @@
           "isSigner": true
         },
         {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenAccount",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
           "isMut": false,
           "isSigner": false
         }
@@ -56,6 +76,50 @@
           "type": "string"
         }
       ]
+    },
+    {
+      "name": "createTokenAccount",
+      "accounts": [
+        {
+          "name": "associatedToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "CHECK"
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
     },
     {
       "name": "modifyRounds",
@@ -282,7 +346,7 @@
           "isSigner": true
         },
         {
-          "name": "tokenInfo",
+          "name": "tokenMint",
           "isMut": false,
           "isSigner": false
         },
@@ -478,40 +542,6 @@
       ]
     },
     {
-      "name": "transferToken",
-      "accounts": [
-        {
-          "name": "idoInfo",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "user",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "token",
-          "type": "publicKey"
-        },
-        {
-          "name": "amount",
-          "type": "u64"
-        },
-        {
-          "name": "to",
-          "type": "publicKey"
-        }
-      ]
-    },
-    {
       "name": "participate",
       "accounts": [
         {
@@ -520,6 +550,16 @@
           "isSigner": false
         },
         {
+          "name": "depositTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "receiveTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "user",
           "isMut": true,
           "isSigner": true
@@ -531,10 +571,6 @@
         }
       ],
       "args": [
-        {
-          "name": "token",
-          "type": "publicKey"
-        },
         {
           "name": "amount",
           "type": "u64"
@@ -550,6 +586,16 @@
           "isSigner": false
         },
         {
+          "name": "depositTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "receiveTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "user",
           "isMut": true,
           "isSigner": true
@@ -561,10 +607,6 @@
         }
       ],
       "args": [
-        {
-          "name": "token",
-          "type": "publicKey"
-        },
         {
           "name": "amount",
           "type": "u64"
@@ -598,6 +640,37 @@
         {
           "name": "claimant",
           "type": "publicKey"
+        }
+      ]
+    },
+    {
+      "name": "transferSplTokens",
+      "accounts": [
+        {
+          "name": "from",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "fromAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "toAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
         }
       ]
     }
@@ -887,6 +960,14 @@
       "code": 6002,
       "name": "InvalidInDex",
       "msg": "Invalid round index"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidWithdrawAmount",
+      "msg": "Insufficient amount to withdraw."
     }
-  ]
+  ],
+  "metadata": {
+    "address": "6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq"
+  }
 }

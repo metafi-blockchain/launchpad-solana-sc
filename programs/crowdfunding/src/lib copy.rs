@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::entrypoint::ProgramResult;
 use anchor_lang::AnchorDeserialize;
 use anchor_lang::AnchorSerialize;
 use anchor_spl::associated_token::AssociatedToken;
@@ -16,9 +17,8 @@ declare_id!("6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq");
 pub mod crowdfunding {
 
 
-    
-
     use anchor_spl::token;
+    
 
     use super::*;
 
@@ -31,7 +31,7 @@ pub mod crowdfunding {
         fcfs_duration: u32,
         cap: u64,
         release_token: String,
-    ) -> Result<()> {
+    ) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
         let token_mint = &ctx.accounts.token_mint;
         ido_account.create_ido(
@@ -47,36 +47,21 @@ pub mod crowdfunding {
         )?;
         msg!("Create account success!");
    
-      
-       
-        Ok(())
-    }
-    pub fn create_token_account(ctx: Context<CreateTokenAccount>) -> Result<()> {
-
-        let payer =  &ctx.accounts.payer;
-        let token_program = &ctx.accounts.token_program;
-        let system_program = &ctx.accounts.system_program;
-        let token_mint = &ctx.accounts.token_mint;
-        let  associated_token = &ctx.accounts.associated_token;
-        let authority = &ctx.accounts.authority;
-        
-        let cpi_accounts =  anchor_spl::associated_token::Create{
-            payer:  payer.to_account_info(),
-            associated_token: associated_token.to_account_info(),
-            authority:  authority.to_account_info(),
-            mint: token_mint.to_account_info(),
-            system_program: system_program.to_account_info(),
-            token_program: token_program.to_account_info()
-        };
         let cpi_program = ctx.accounts.associated_token_program.to_account_info();
+       
+        let cpi_accounts = anchor_spl::associated_token::Create {
+            payer: ctx.accounts.user.to_account_info(),
+            associated_token: ctx.accounts.token_account.to_account_info(),
+            authority: ctx.accounts.user.to_account_info(),
+            mint: ctx.accounts.token_mint.to_account_info(),
+            system_program: ctx.accounts.system_program.to_account_info(),
+            token_program: ctx.accounts.token_program.to_account_info(),
+        };
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
         anchor_spl::associated_token::create(cpi_ctx)?;
-
-        msg!( "Create {} Token Account Success!", authority.key);
        
         Ok(())
     }
-
 
     //todo: check lại logic phan tiers khai bao
     pub fn modify_rounds(
@@ -84,12 +69,19 @@ pub mod crowdfunding {
         name_list: Vec<String>,
         duration_list: Vec<u32>,
         class_list: Vec<RoundClass>,
-    ) -> Result<()> {
+    ) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
 
-        require!(name_list.len()> 0, ProgramErrors::InvalidRounds);
-        require!(name_list.len() == duration_list.len(), ProgramErrors::InvalidRounds);
-       
+        //check name_list
+        if name_list.is_empty() {
+            msg!("Invalid rounds specified");
+            return Err(ProgramError::InvalidArgument);
+        }
+        //check size
+        if name_list.len() != duration_list.len() || name_list.len() != class_list.len() {
+            msg!("Invalid rounds specified");
+            return Err(ProgramError::InvalidArgument);
+        }
 
         ido_account.modify_rounds(
             ctx.accounts.user.key,
@@ -107,7 +99,7 @@ pub mod crowdfunding {
         name: String,
         duration_seconds: u32,
         class: RoundClass,
-    ) -> Result<()> {
+    ) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
         ido_account.modify_round(
             ctx.accounts.user.key,
@@ -124,55 +116,63 @@ pub mod crowdfunding {
         ctx: Context<ModifyTier>,
         index: u32,
         tier_allocations: Vec<u64>,
-    ) -> Result<()> {
+    ) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
 
-        require!(ido_account._is_admin(&ctx.accounts.user.key), ProgramErrors::NotAuthorized);
         //check owner
-
+        if !ido_account._is_admin(ctx.accounts.user.key) {
+            msg!("only authority is allowed to call this function");
+            return Err(ProgramError::InvalidAccountOwner);
+        }
 
         match ido_account._rounds.get_mut(index as usize) {
             Some(r) => {
                 r.tier_allocations = tier_allocations;
             }
             None => {
-                return err!(ProgramErrors::InvalidInDex);
+                msg!("Invalid round index");
+                return Err(ProgramError::InvalidArgument);
             }
         }
 
         Ok(())
     }
 
-    pub fn modify_tier(ctx: Context<Modifier>, index: u32, name: String) -> Result<()> {
+    pub fn modify_tier(ctx: Context<Modifier>, index: u32, name: String) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
 
         //check owner
-        require!(ido_account._is_admin(&ctx.accounts.user.key), ProgramErrors::NotAuthorized);
-     
-        
+        if !ido_account._is_admin(ctx.accounts.user.key) {
+            msg!("only authority is allowed to call this function");
+            return Err(ProgramError::InvalidAccountOwner);
+        }
 
         match ido_account._tiers.get_mut(index as usize) {
             Some(tier) => {
                 tier.name = name;
             }
             None => {
-                return err!(ProgramErrors::InvalidInDex);
+                msg!("Invalid round index");
+                return Err(ProgramError::InvalidArgument);
             }
         }
         Ok(())
     }
 
-    pub fn modify_tiers(ctx: Context<Modifier>, name_list: Vec<String>) -> Result<()> {
+    pub fn modify_tiers(ctx: Context<Modifier>, name_list: Vec<String>) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
-
-        //check owner
         let user = &mut ctx.accounts.user;
-        require!(ido_account._is_admin(&ctx.accounts.user.key), ProgramErrors::NotAuthorized);
-        require!(name_list.len()>0, ProgramErrors::InValidTier);
+
         //check name_list
-
-
-       
+        if name_list.is_empty() {
+            msg!("Invalid tiers specified");
+            return Err(ProgramError::InvalidArgument);
+        }
+        //check owner
+        if !ido_account._is_admin(user.key) {
+            msg!("only authority is allowed to call this function");
+            return Err(ProgramError::InvalidAccountOwner);
+        }
         //delete tier
         ido_account._tiers = vec![];
 
@@ -195,7 +195,7 @@ pub mod crowdfunding {
         index: u32,
         addresses: Vec<String>,
         remove: bool,
-    ) -> Result<()> {
+    ) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
         let user = &ctx.accounts.user;
 
@@ -208,7 +208,7 @@ pub mod crowdfunding {
         ctx: Context<SetupReleaseToken>,
         token: String,
         pair: String,
-    ) -> Result<()> {
+    ) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
 
         let token_mint: &Account<'_, Mint> =&ctx.accounts.token_mint;
@@ -226,12 +226,13 @@ pub mod crowdfunding {
         from_timestamps: Vec<u32>,
         to_timestamps: Vec<u32>,
         percents: Vec<u16>,
-    ) -> Result<()> {
+    ) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
         //check size
-        require!(from_timestamps.len() == to_timestamps.len(), ProgramErrors::InvalidReleaseIndex);
-        require!(to_timestamps.len() == percents.len(), ProgramErrors::InvalidReleaseIndex);
-
+        if from_timestamps.len() != to_timestamps.len() || from_timestamps.len() != percents.len() {
+            msg!("Invalid releases");
+            return Err(ProgramError::InvalidArgument);
+        }
 
         ido_account.set_releases(
             ctx.accounts.user.key,
@@ -243,24 +244,24 @@ pub mod crowdfunding {
         Ok(())
     }
 
-    pub fn set_closed(ctx: Context<Modifier>, close: bool) -> Result<()> {
+    pub fn set_closed(ctx: Context<Modifier>, close: bool) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
         ido_account.set_closed(ctx.accounts.user.key, &close)?;
         Ok(())
     }
 
-    pub fn set_cap(ctx: Context<Modifier>, cap: u64) -> Result<()> {
+    pub fn set_cap(ctx: Context<Modifier>, cap: u64) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
         ido_account.set_cap(ctx.accounts.user.key, &cap)?;
         Ok(())
     }
 
-    pub fn set_rate(ctx: Context<Modifier>, rate: u16) -> Result<()> {
+    pub fn set_rate(ctx: Context<Modifier>, rate: u16) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
         ido_account.set_rate(ctx.accounts.user.key, &rate)?;
         Ok(())
     }
-    pub fn set_open_timestamp(ctx: Context<Modifier>, open_timestamp: u32) -> Result<()> {
+    pub fn set_open_timestamp(ctx: Context<Modifier>, open_timestamp: u32) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
         ido_account.set_open_timestamp(ctx.accounts.user.key, &open_timestamp)?;
         Ok(())
@@ -271,55 +272,75 @@ pub mod crowdfunding {
         ctx: Context<TransferNativeToken>,
         amount: u64,
         _to: Pubkey,
-    ) -> Result<()> {
+    ) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
         let user = &ctx.accounts.user;
         // let system_program = &mut ctx.accounts.system_program;
         //check owner
-        require!(ido_account._is_admin(&ctx.accounts.user.key), ProgramErrors::NotAuthorized);
-        
+           if !ido_account._is_admin(user.key) {
+            msg!("only authority is allowed to call this function");
+            return Err(ProgramError::InvalidAccountOwner);
+        }
+
         let rent_balance = Rent::get()?.minimum_balance(ido_account.to_account_info().data_len());
 
         if **ido_account.to_account_info().lamports.borrow() - rent_balance < amount{
-            return err!(ProgramErrors::InvalidInDex);
+            return Err(ProgramError::InsufficientFunds);
         }
 
         **ido_account.to_account_info().try_borrow_mut_lamports()? -= amount;
         **user.to_account_info().try_borrow_mut_lamports()? += amount;
+
+        // let ix = anchor_lang::solana_program::system_instruction::transfer(user.key, &to, amount);
+        // anchor_lang::solana_program::program::invoke(
+        //     &ix,
+        //     &[
+        //         ctx.accounts.user.to_account_info(),
+        //         ctx.accounts.ido_info.to_account_info(),
+        //     ],
+        // )?;
 
         Ok(())
     }
 
     
     //user join IDO: need test
-    pub fn participate(ctx: Context<Participate>, amount: u64) -> Result<()> {
+    pub fn participate(ctx: Context<Participate>, amount: u64) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
         let user = &ctx.accounts.user;
         // let system_program = &ctx.accounts.system_program;
 
+
         //check amount
-        require!(amount > 0, ProgramErrors::InvalidAmount);
-        
+        if amount == 0 {
+            msg!("{}", "Amount must be greater than 0");
+            return Err(ProgramError::InvalidArgument);
+        }
 
         let (tier, round, round_state, _, _) = ido_account._info_wallet(user.key);
 
         //check state
-        require!(round_state == 1 || round_state == 3, ProgramErrors::ParticipationNotValid);
-     
-  
-        let allocation_remaining = ido_account.get_allocation_remaining(&round, &tier, user.key);
-        
+        if round_state != 1 && round_state != 3 {
+            msg!("{}", "Participation not valid/open");
+            return Err(ProgramError::ArithmeticOverflow); //
+        }
         //check allocation remaining
-        require!(allocation_remaining >= amount, ProgramErrors::AmountExceedsRemainingAllocation );
-        
+        let allocation_remaining = ido_account.get_allocation_remaining(&round, &tier, user.key);
+        if allocation_remaining < amount {
+            msg!("{}", "Amount exceeds remaining allocation");
+            return Err(ProgramError::InvalidArgument);
+        }
+
         //if raise token is native token
         if ido_account._raise_token == Pubkey::from_str(NATIVE_MINT).unwrap() {
             //get user lam port
             let user_lamport = user.get_lamports();
             //check balance
+            if user_lamport < amount {
+                msg!("{}", "Insufficent native token balance");
+                return Err(ProgramError::InvalidArgument);
+            }
 
-            require!(user_lamport >= amount, ProgramErrors::InsufficientAmount);
-            
             let instruction =  anchor_lang::solana_program::system_instruction::transfer(
                 &user.key(),
                 &ido_account.key(),
@@ -350,7 +371,7 @@ pub mod crowdfunding {
         Ok(())
     }
 
-    pub fn test_participate(ctx: Context<Participate>, amount: u64)->Result<()>{
+    pub fn test_participate(ctx: Context<Participate>, amount: u64)->ProgramResult{
 
         msg!("test participate");
         // let ido_account = &mut ctx.accounts.ido_info;
@@ -374,30 +395,28 @@ pub mod crowdfunding {
     }
 
     //user claim token  : doing
-    pub fn claim(ctx: Context<Claim>, index: u16, claimant: Pubkey) -> Result<()> {
+    pub fn claim(ctx: Context<Claim>, index: u16, claimant: Pubkey) -> ProgramResult {
         let ido_account = &mut ctx.accounts.ido_info;
         //check release token
-        // if ido_account._release_token == Pubkey::from_str(NATIVE_MINT).unwrap() {
-        //     msg!("Native token cannot be claimed");
-        //     return Err(ProgramError::InvalidArgument);
-        // }
-        // //check index
-        // if index == 0 {
-        //     msg!("Invalid release index");
-        //     return Err(ProgramError::InvalidArgument);
-        // }
-        // //check claimant
-        // if claimant != *ctx.accounts.user.key {
-        //     msg!("Invalid claimant");
-        //     return Err(ProgramError::InvalidArgument);
-        // }
+        if ido_account._release_token == Pubkey::from_str(NATIVE_MINT).unwrap() {
+            msg!("Native token cannot be claimed");
+            return Err(ProgramError::InvalidArgument);
+        }
+        //check index
+        if index == 0 {
+            msg!("Invalid release index");
+            return Err(ProgramError::InvalidArgument);
+        }
+        //check claimant
+        if claimant != *ctx.accounts.user.key {
+            msg!("Invalid claimant");
+            return Err(ProgramError::InvalidArgument);
+        }
 
         Ok(())
     }
 
-    //test OK
     pub fn transfer_spl_tokens(ctx: Context<TransferSpl>, amount: u64) -> Result<()> {
-
         let destination = &ctx.accounts.to_ata;
         let source = &ctx.accounts.from_ata;
         let token_program = &ctx.accounts.token_program;
@@ -471,15 +490,15 @@ trait IdoStrait {
         fcfs_duration: &u32,
         cap: &u64,
         release_token: &String,
-    ) -> Result<()>;
+    ) -> ProgramResult;
 
-    fn init_tier(&mut self) -> Result<()>;
-    fn init_rounds(&mut self, allocation_duration: &u32, fcfs_duration: &u32) -> Result<()>;
+    fn init_tier(&mut self) -> ProgramResult;
+    fn init_rounds(&mut self, allocation_duration: &u32, fcfs_duration: &u32) -> ProgramResult;
     //admin function
     fn add_tier(&mut self, tier: TierItem);
     fn add_round(&mut self, round: RoundItem);
-    fn set_closed(&mut self, user: &Pubkey, close: &bool) -> Result<()>;
-    fn set_cap(&mut self, user: &Pubkey, cap: &u64) -> Result<()>;
+    fn set_closed(&mut self, user: &Pubkey, close: &bool) -> ProgramResult;
+    fn set_cap(&mut self, user: &Pubkey, cap: &u64) -> ProgramResult;
 
     fn set_releases(
         &mut self,
@@ -487,9 +506,9 @@ trait IdoStrait {
         from_timestamps: &Vec<u32>,
         to_timestamps: &Vec<u32>,
         percents: &Vec<u16>,
-    ) -> Result<()>;
+    ) -> ProgramResult;
 
-    fn set_release_token(&mut self, user: &Pubkey, token: &Pubkey, pair: &Pubkey, token_decimals: &u8) -> Result<()>;
+    fn set_release_token(&mut self, user: &Pubkey, token: &Pubkey, pair: &Pubkey, token_decimals: &u8) -> ProgramResult;
 
     fn modify_round(
         &mut self,
@@ -498,7 +517,7 @@ trait IdoStrait {
         name: &String,
         duration_seconds: &u32,
         class: &RoundClass,
-    ) -> Result<()>;
+    ) -> ProgramResult;
 
     //check lai logic
     fn modify_rounds(
@@ -507,7 +526,7 @@ trait IdoStrait {
         name_list: &Vec<String>,
         duration_list: &Vec<u32>,
         class_list: &Vec<RoundClass>,
-    ) -> Result<()>;
+    ) -> ProgramResult;
 
     // modify_tier_allocated
     fn modify_tier_allocated(
@@ -518,18 +537,18 @@ trait IdoStrait {
         remove: &bool,
     ) -> Result<()>;
 
-    fn set_rate(&mut self, user: &Pubkey, rate: &u16) -> Result<()>;
+    fn set_rate(&mut self, user: &Pubkey, rate: &u16) -> ProgramResult;
 
-    fn set_open_timestamp(&mut self, user: &Pubkey, open_timestamps: &u32) -> Result<()>;
+    fn set_open_timestamp(&mut self, user: &Pubkey, open_timestamps: &u32) -> ProgramResult;
 
     //fn participate
-    fn update_participate(&mut self, round: &u16, user: &Pubkey, amount: &u64) -> Result<()>;
+    fn update_participate(&mut self, round: &u16, user: &Pubkey, amount: &u64) -> ProgramResult;
 
     // fn transfer_token( token: &Pubkey, from:&Pubkey,   to: &Pubkey,  amount: u64);
     // fn transfer_native_token( from:&Pubkey,   to: &Pubkey,  amount: u64);
 
     //claim
-    fn _claim(&mut self, index: &u16, claimant: &Pubkey) -> Result<()>;
+    fn _claim(&mut self, index: &u16, claimant: &Pubkey) -> ProgramResult;
 
     //getter function
     fn get_info_ido(&self) -> IdoAccountInfo;
@@ -569,7 +588,7 @@ impl IdoStrait for IdoAccountInfo {
         fcfs_duration: &u32,
         cap: &u64,
         release_token: &String,
-    ) -> Result<()> {
+    ) -> ProgramResult {
 
         self._raise_token = Pubkey::from_str(raise_token).unwrap();
         self._raise_token_decimals = *decimals; 
@@ -584,7 +603,7 @@ impl IdoStrait for IdoAccountInfo {
         Ok(())
     }
 
-    fn init_tier(&mut self) -> Result<()> {
+    fn init_tier(&mut self) -> ProgramResult {
         //add tier
         self.add_tier(TierItem {
             name: String::from("Lottery Winners"),
@@ -623,7 +642,7 @@ impl IdoStrait for IdoAccountInfo {
         });
         Ok(())
     }
-    fn init_rounds(&mut self, allocation_duration: &u32, fcfs_duration: &u32) -> Result<()> {
+    fn init_rounds(&mut self, allocation_duration: &u32, fcfs_duration: &u32) -> ProgramResult {
         //check lai logic add round chỗ constructor của JD tier_allocations
         //add rounds
         self.add_round(RoundItem {
@@ -661,15 +680,20 @@ impl IdoStrait for IdoAccountInfo {
         self._rounds.push(round);
     }
 
-    fn set_closed(&mut self, user: &Pubkey, close: &bool) -> Result<()> {
-        require!(self._is_admin(user), ProgramErrors::NotAuthorized);
+    fn set_closed(&mut self, user: &Pubkey, close: &bool) -> ProgramResult {
+        if !self._is_admin(user) {
+            msg!("only authority is allowed to call this function");
+            return Err(ProgramError::InvalidAccountOwner);
+        }
         self._closed = *close;
         Ok(())
     }
 
-    fn set_cap(&mut self, user: &Pubkey, cap: &u64) -> Result<()> {
-        require!(self._is_admin(user), ProgramErrors::NotAuthorized);
-
+    fn set_cap(&mut self, user: &Pubkey, cap: &u64) -> ProgramResult {
+        if !self._is_admin(user) {
+            msg!("only authority is allowed to call this function");
+            return Err(ProgramError::InvalidAccountOwner);
+        }
         self._cap = *cap;
         Ok(())
     }
@@ -680,9 +704,11 @@ impl IdoStrait for IdoAccountInfo {
         from_timestamps: &Vec<u32>,
         to_timestamps: &Vec<u32>,
         percents: &Vec<u16>,
-    ) -> Result<()> {
-        require!(self._is_admin(user), ProgramErrors::NotAuthorized);
-
+    ) -> ProgramResult {
+        if !self._is_admin(user) {
+            msg!("only authority is allowed to call this function");
+            return Err(ProgramError::InvalidAccountOwner);
+        }
         self._releases = vec![];
         //get info Ido from account address
         for (i, from_timestamp) in from_timestamps.iter().enumerate() {
@@ -696,10 +722,11 @@ impl IdoStrait for IdoAccountInfo {
         Ok(())
     }
 
-    fn set_release_token(&mut self, user: &Pubkey, token: &Pubkey, pair: &Pubkey, token_decimals: &u8) -> Result<()> {
-        
-        require!(self._is_admin(user), ProgramErrors::NotAuthorized);
-
+    fn set_release_token(&mut self, user: &Pubkey, token: &Pubkey, pair: &Pubkey, token_decimals: &u8) -> ProgramResult {
+        if !self._is_admin(user) {
+            msg!("only authority is allowed to call this function");
+            return Err(ProgramError::InvalidAccountOwner);
+        }
         self._release_token = *token;
         self._release_token_pair = *pair;
 
@@ -716,9 +743,11 @@ impl IdoStrait for IdoAccountInfo {
         name: &String,
         duration_seconds: &u32,
         class: &RoundClass,
-    ) -> Result<()> {
-        require!(self._is_admin(user), ProgramErrors::NotAuthorized);
-
+    ) -> ProgramResult {
+        if !self._is_admin(user) {
+            msg!("only authority is allowed to call this function");
+            return Err(ProgramError::InvalidAccountOwner);
+        }
 
         match self._rounds.get_mut(*index as usize) {
             Some(r) => {
@@ -727,7 +756,8 @@ impl IdoStrait for IdoAccountInfo {
                 r.class = class.clone();
             }
             None => {
-                return err!(ProgramErrors::InvalidInDex);
+                msg!("Invalid round index");
+                return Err(ProgramError::InvalidArgument);
             }
         }
         Ok(())
@@ -739,9 +769,11 @@ impl IdoStrait for IdoAccountInfo {
         name_list: &Vec<String>,
         duration_list: &Vec<u32>,
         class_list: &Vec<RoundClass>,
-    ) -> Result<()> {
-        require!(self._is_admin(user), ProgramErrors::NotAuthorized);
-
+    ) -> ProgramResult {
+        if !self._is_admin(user) {
+            msg!("only authority is allowed to call this function");
+            return Err(ProgramError::InvalidAccountOwner);
+        }
         self._rounds = vec![];
 
         //push round into ido_account._rounds
@@ -765,8 +797,9 @@ impl IdoStrait for IdoAccountInfo {
         addresses: &Vec<String>,
         remove: &bool,
     ) -> Result<()> {
-
-        require!(self._is_admin(user), ProgramErrors::NotAuthorized);
+        if !self._is_admin(user) {
+            return err!(ProgramErrors::PdaNotMatched);
+        }
 
         match self._tiers.get_mut(*index as usize) {
             Some(tier) => {
@@ -782,28 +815,33 @@ impl IdoStrait for IdoAccountInfo {
                 }
             }
             None => {
+                // msg!("Invalid round index");
                 return err!(ProgramErrors::InvalidInDex);
             }
         }
         Ok(())
     }
 
-    fn set_rate(&mut self, user: &Pubkey, rate: &u16) -> Result<()> {
-        require!(self._is_admin(user), ProgramErrors::NotAuthorized);
-
+    fn set_rate(&mut self, user: &Pubkey, rate: &u16) -> ProgramResult {
+        if !self._is_admin(user) {
+            msg!("only authority is allowed to call this function");
+            return Err(ProgramError::InvalidAccountOwner);
+        }
         self._rate = *rate;
         Ok(())
     }
 
-    fn set_open_timestamp(&mut self, user: &Pubkey, open_timestamps: &u32) -> Result<()> {
-        require!(self._is_admin(user), ProgramErrors::NotAuthorized);
-
+    fn set_open_timestamp(&mut self, user: &Pubkey, open_timestamps: &u32) -> ProgramResult {
+        if !self._is_admin(user) {
+            msg!("only authority is allowed to call this function");
+            return Err(ProgramError::InvalidAccountOwner);
+        }
         self._open_timestamp = open_timestamps.clone();
         Ok(())
     }
 
     //implement fn participate
-    fn update_participate(&mut self, round: &u16, user: &Pubkey, amount: &u64) -> Result<()> {
+    fn update_participate(&mut self, round: &u16, user: &Pubkey, amount: &u64) -> ProgramResult {
         //update participated of contract
         self._participated = self._participated.safe_add(*amount)?;
 
@@ -819,7 +857,8 @@ impl IdoStrait for IdoAccountInfo {
                 _r.set_participated_of_address(user, &_participated);
             }
             None => {
-                return err!(ProgramErrors::InvalidInDex);
+                msg!("Invalid round index");
+                return Err(ProgramError::InvalidArgument);
             }
         }
 
@@ -829,12 +868,12 @@ impl IdoStrait for IdoAccountInfo {
    
 
     //implement function _claim
-    fn _claim(&mut self, index: &u16, claimant: &Pubkey) -> Result<()> {
+    fn _claim(&mut self, index: &u16, claimant: &Pubkey) -> ProgramResult {
         let native_token_pub = Pubkey::from_str(NATIVE_MINT).unwrap();
 
         if self._release_token == native_token_pub {
             msg!("Release token not yet defined");
-            return err!(ProgramErrors::InvalidReleaseToken);
+            return Err(ProgramError::InvalidArgument);
         }
         //emit ClaimEvent
         emit!(ClaimEvent {
@@ -1368,26 +1407,9 @@ pub enum ProgramErrors {
     NotAuthorized,
     #[msg("Invalid round index")]
     InvalidInDex,
-    #[msg("Invalid rounds specified")]
-    InvalidRounds,
     #[msg("Insufficient amount to withdraw.")]
-    InsufficientAmount,
-    #[msg("Invalid tiers specified")]
-    InValidTier,
-    #[msg("Invalid release index")]
-    InvalidReleaseIndex,
-    #[msg("Invalid release token")]
-    InvalidReleaseToken,
-    #[msg("No tokens left in the pool")]
-    NoTokensLeft,
-    #[msg("Amount must be greater than 0")]
-    InvalidAmount,
-    #[msg("Participation not valid/open")]
-    ParticipationNotValid,
-    #[msg("Amount exceeds remaining allocation")]
-    AmountExceedsRemainingAllocation,
+    InvalidWithdrawAmount,
 
-    
 }
 
 
@@ -1400,18 +1422,4 @@ pub struct TransferSpl<'info> {
     #[account(mut)]
     pub to_ata: Account<'info, TokenAccount>,
     pub token_program: Program<'info, Token>,
-}
-#[derive(Accounts)]
-pub struct CreateTokenAccount<'info> {
-    #[account(mut)]
-    pub associated_token: Account<'info, TokenAccount>,
-    pub token_mint: Account<'info, Mint>,
-     #[account(mut)]
-    pub payer: Signer<'info>,
-    ///CHECK
-    pub authority: AccountInfo<'info>,
-    pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-
 }

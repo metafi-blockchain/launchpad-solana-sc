@@ -6,9 +6,9 @@
       "name": "initialize",
       "accounts": [
         {
-          "name": "idoInfo",
+          "name": "idoAccount",
           "isMut": true,
-          "isSigner": true
+          "isSigner": false
         },
         {
           "name": "tokenMint",
@@ -16,19 +16,14 @@
           "isSigner": false
         },
         {
+          "name": "tokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "user",
           "isMut": true,
           "isSigner": true
-        },
-        {
-          "name": "rent",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "tokenAccount",
-          "isMut": false,
-          "isSigner": false
         },
         {
           "name": "systemProgram",
@@ -74,6 +69,10 @@
         {
           "name": "releaseToken",
           "type": "string"
+        },
+        {
+          "name": "idoId",
+          "type": "u32"
         }
       ]
     },
@@ -81,12 +80,12 @@
       "name": "createTokenAccount",
       "accounts": [
         {
-          "name": "associatedToken",
+          "name": "tokenAccount",
           "isMut": true,
           "isSigner": false
         },
         {
-          "name": "tokenMint",
+          "name": "mint",
           "isMut": false,
           "isSigner": false
         },
@@ -96,17 +95,12 @@
           "isSigner": true
         },
         {
-          "name": "authority",
+          "name": "systemProgram",
           "isMut": false,
           "isSigner": false,
           "docs": [
             "CHECK"
           ]
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
         },
         {
           "name": "tokenProgram",
@@ -117,6 +111,11 @@
           "name": "associatedTokenProgram",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": []
@@ -125,7 +124,7 @@
       "name": "modifyRounds",
       "accounts": [
         {
-          "name": "idoInfo",
+          "name": "idoAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -167,7 +166,7 @@
       "name": "modifyRound",
       "accounts": [
         {
-          "name": "idoInfo",
+          "name": "idoAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -207,7 +206,7 @@
       "name": "modifyRoundAllocations",
       "accounts": [
         {
-          "name": "idoInfo",
+          "name": "idoAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -239,7 +238,7 @@
       "name": "modifyTier",
       "accounts": [
         {
-          "name": "idoInfo",
+          "name": "idoAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -269,7 +268,7 @@
       "name": "modifyTiers",
       "accounts": [
         {
-          "name": "idoInfo",
+          "name": "idoAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -296,11 +295,11 @@
     {
       "name": "modifyTierAllocated",
       "docs": [
-        "* them hoac remove address vao allocation cua tier"
+        "* add or remove the address into tier allocation"
       ],
       "accounts": [
         {
-          "name": "idoInfo",
+          "name": "idoAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -336,7 +335,7 @@
       "name": "setupReleaseToken",
       "accounts": [
         {
-          "name": "idoInfo",
+          "name": "idoAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -371,7 +370,7 @@
       "name": "setupReleases",
       "accounts": [
         {
-          "name": "idoInfo",
+          "name": "idoAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -411,7 +410,7 @@
       "name": "setClosed",
       "accounts": [
         {
-          "name": "idoInfo",
+          "name": "idoAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -437,7 +436,7 @@
       "name": "setCap",
       "accounts": [
         {
-          "name": "idoInfo",
+          "name": "idoAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -463,7 +462,7 @@
       "name": "setRate",
       "accounts": [
         {
-          "name": "idoInfo",
+          "name": "idoAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -489,7 +488,7 @@
       "name": "setOpenTimestamp",
       "accounts": [
         {
-          "name": "idoInfo",
+          "name": "idoAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -515,7 +514,7 @@
       "name": "transferNativeToken",
       "accounts": [
         {
-          "name": "idoInfo",
+          "name": "idoAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -542,27 +541,37 @@
       ]
     },
     {
-      "name": "participate",
+      "name": "withdrawTokenFromPda",
       "accounts": [
         {
-          "name": "idoInfo",
+          "name": "idoAccount",
           "isMut": true,
           "isSigner": false
         },
         {
-          "name": "depositTokenAccount",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "receiveTokenAccount",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "user",
+          "name": "payer",
           "isMut": true,
           "isSigner": true
+        },
+        {
+          "name": "fromAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "toAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
         },
         {
           "name": "systemProgram",
@@ -574,14 +583,18 @@
         {
           "name": "amount",
           "type": "u64"
+        },
+        {
+          "name": "idoId",
+          "type": "u32"
         }
       ]
     },
     {
-      "name": "testParticipate",
+      "name": "participate",
       "accounts": [
         {
-          "name": "idoInfo",
+          "name": "idoAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -617,8 +630,18 @@
       "name": "claim",
       "accounts": [
         {
-          "name": "idoInfo",
+          "name": "tokenAccount",
           "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "idoAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenMint",
+          "isMut": false,
           "isSigner": false
         },
         {
@@ -628,6 +651,16 @@
         },
         {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
           "isMut": false,
           "isSigner": false
         }
@@ -644,7 +677,7 @@
       ]
     },
     {
-      "name": "transferSplTokens",
+      "name": "transferSplToken",
       "accounts": [
         {
           "name": "from",
@@ -677,7 +710,7 @@
   ],
   "accounts": [
     {
-      "name": "IdoAccountInfo",
+      "name": "IdoAccount",
       "type": {
         "kind": "struct",
         "fields": [
@@ -742,6 +775,10 @@
             }
           },
           {
+            "name": "raiseAssociatedToken",
+            "type": "publicKey"
+          },
+          {
             "name": "releaseTokenDecimals",
             "type": "u8"
           },
@@ -752,6 +789,10 @@
           {
             "name": "owner",
             "type": "publicKey"
+          },
+          {
+            "name": "idoId",
+            "type": "u32"
           }
         ]
       }
@@ -963,8 +1004,48 @@
     },
     {
       "code": 6003,
-      "name": "InvalidWithdrawAmount",
+      "name": "InvalidRounds",
+      "msg": "Invalid rounds specified"
+    },
+    {
+      "code": 6004,
+      "name": "InsufficientAmount",
       "msg": "Insufficient amount to withdraw."
+    },
+    {
+      "code": 6005,
+      "name": "InValidTier",
+      "msg": "Invalid tiers specified"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidReleaseIndex",
+      "msg": "Invalid release index"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidReleaseToken",
+      "msg": "Invalid release token"
+    },
+    {
+      "code": 6008,
+      "name": "NoTokensLeft",
+      "msg": "No tokens left in the pool"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidAmount",
+      "msg": "Amount must be greater than 0"
+    },
+    {
+      "code": 6010,
+      "name": "ParticipationNotValid",
+      "msg": "Participation not valid/open"
+    },
+    {
+      "code": 6011,
+      "name": "AmountExceedsRemainingAllocation",
+      "msg": "Amount exceeds remaining allocation"
     }
   ],
   "metadata": {

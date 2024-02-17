@@ -7,6 +7,7 @@ use solana_safe_math::SafeMath;
 use std::ops::Add;
 use std::ops::Sub;
 use std::str::FromStr;
+
 static NATIVE_MINT: &str = "So11111111111111111111111111111111111111112";
 
 declare_id!("6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq");
@@ -16,7 +17,7 @@ pub mod crowdfunding {
 
     // use anchor_spl::token;
 
-    use anchor_lang::{ solana_program::{native_token::LAMPORTS_PER_SOL, program::invoke_signed, system_instruction::{self, create_account}}};
+    use anchor_lang::solana_program::native_token::LAMPORTS_PER_SOL;
 
     use super::*;
 
@@ -50,7 +51,7 @@ pub mod crowdfunding {
     }
 
     pub fn modify_rounds(
-        ctx: Context<AdminModifier>,
+        ctx: Context<Modifier>,
         name_list: Vec<String>,
         duration_list: Vec<u32>,
         class_list: Vec<RoundClass>,
@@ -64,7 +65,7 @@ pub mod crowdfunding {
         );
 
         ido_account.modify_rounds(
-            ctx.accounts.authority.key,
+            ctx.accounts.user.key,
             &name_list,
             &duration_list,
             &class_list,
@@ -74,7 +75,7 @@ pub mod crowdfunding {
     }
 
     pub fn modify_round(
-        ctx: Context<AdminModifier>,
+        ctx: Context<Modifier>,
         index: i32,
         name: String,
         duration_seconds: u32,
@@ -82,7 +83,7 @@ pub mod crowdfunding {
     ) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
         ido_account.modify_round(
-            ctx.accounts.authority.key,
+            ctx.accounts.user.key,
             &index,
             &name,
             &duration_seconds,
@@ -93,7 +94,7 @@ pub mod crowdfunding {
     }
 
     pub fn modify_round_allocations(
-        ctx: Context<AdminModifier>,
+        ctx: Context<ModifyTier>,
         index: u32,
         tier_allocations: Vec<u64>,
     ) -> Result<()> {
@@ -101,7 +102,7 @@ pub mod crowdfunding {
 
         //check owner
         require!(
-            ido_account._is_admin(&ctx.accounts.authority.key),
+            ido_account._is_admin(&ctx.accounts.user.key),
             IDOProgramErrors::NotAuthorized
         );
 
@@ -117,12 +118,12 @@ pub mod crowdfunding {
         Ok(())
     }
 
-    pub fn modify_tier(ctx: Context<AdminModifier>, index: u32, name: String) -> Result<()> {
+    pub fn modify_tier(ctx: Context<Modifier>, index: u32, name: String) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
 
         //check owner
         require!(
-            ido_account._is_admin(&ctx.accounts.authority.key),
+            ido_account._is_admin(&ctx.accounts.user.key),
             IDOProgramErrors::NotAuthorized
         );
 
@@ -137,83 +138,43 @@ pub mod crowdfunding {
         Ok(())
     }
 
-    pub fn modify_tiers(ctx: Context<AdminModifier>, name_list: Vec<String>) -> Result<()> {
+    pub fn modify_tiers(ctx: Context<Modifier>, name_list: Vec<String>) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
 
         //check owner
         require!(
-            ido_account._is_admin(&ctx.accounts.authority.key),
+            ido_account._is_admin(&ctx.accounts.user.key),
             IDOProgramErrors::NotAuthorized
         );
         require!(name_list.len() > 0, IDOProgramErrors::InValidTier);
+        //delete tier
         ido_account._tiers = vec![];
+
         //push tier into ido_account._tiers
         for (_, name) in name_list.iter().enumerate() {
             ido_account.add_tier(TierItem {
-                name: name.to_string()
+                name: name.to_string(),
+                allocated: vec![],
             });
         }
 
         Ok(())
     }
 
-    pub fn modify_tier_allocated_one(
-        ctx: Context<ModifyTierAllocatedOne>,
-        index: u8,
-        address: Pubkey,
-        remove: bool,
-    ) -> Result<()> {
-        let ido_account = & ctx.accounts.ido_account;
-        let user_pda = &mut ctx.accounts.user_ido_account;
-        user_pda.init_user_pda(&index, &address, &ido_account.key(), &!remove)?;   
-        Ok(())
-    }
-
     /**
-     * doing 
+     * add or remove the address into tier allocation  
      */
-    pub fn modify_tier_allocated_multi(
-        ctx: Context<ModifyTierAllocatedMulti>,
+    pub fn modify_tier_allocated(
+        ctx: Context<Modifier>,
         index: u32,
         addresses: Vec<String>,
-        _: bool,
+        remove: bool,
     ) -> Result<()> {
+        let ido_account = &mut ctx.accounts.ido_account;
+        let user = &ctx.accounts.user;
 
-        // let ido_account = & ctx.accounts.ido_account;
-        let authority = &ctx.accounts.authority;
-        match addresses.get(index as usize) {
-            Some(address) => {
-               
-            //    let user =  Pubkey::from_str(address).unwrap();
-
-                let system_program =  &ctx.accounts.system_program;
-                let program_id = &Pubkey::from_str("6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq").unwrap();
-               
-                let _pub_user = Pubkey::from_str(address);
-                let _ido_id = &ctx.accounts.ido_account.ido_id;
-              
-                let lamports = Rent::default().minimum_balance(1);
-
-                let space = 32 + 1 + 32 + 16 + 16; //PdaUserIdo
-
-                let seeds:&[&[u8]] = &[  b"claim_ido_pad", &authority.key.as_ref(), &_ido_id.to_le_bytes(),  &[ctx.bumps.ido_account]];
-                
-                let (pda, _bump) = Pubkey::find_program_address(seeds, program_id);
-                
-                let signers_seeds = &[&seeds[..]];
-                let cpi_create_account = system_instruction::create_account(
-                    authority.key, &pda.key(), lamports, space, program_id);
-
-                   invoke_signed(&cpi_create_account, &[
-                    authority.to_account_info(), 
-                    
-                    system_program.to_account_info(),
-                ], signers_seeds)?;
-            }
-            None => {
-                return err!(IDOProgramErrors::InvalidInDex);
-            }
-        }
+        //ido_account  implement modify_tier_allocated
+        ido_account.modify_tier_allocated(user.key, &index, &addresses, &remove)?;
         Ok(())
     }
 
@@ -230,6 +191,7 @@ pub mod crowdfunding {
         let pair_pubkey = &Pubkey::from_str(&pair).unwrap();
         let decimals = token_mint.decimals;
         ido_account.set_release_token(
+            ctx.accounts.user.key,
             token_pubkey,
             pair_pubkey,
             &decimals,
@@ -239,7 +201,7 @@ pub mod crowdfunding {
     }
 
     pub fn setup_releases(
-        ctx: Context<AdminModifier>,
+        ctx: Context<SetupReleases>,
         from_timestamps: Vec<u32>,
         to_timestamps: Vec<u32>,
         percents: Vec<u16>,
@@ -256,7 +218,7 @@ pub mod crowdfunding {
         );
 
         ido_account.set_releases(
-            ctx.accounts.authority.key,
+            ctx.accounts.user.key,
             &from_timestamps,
             &to_timestamps,
             &percents,
@@ -265,26 +227,26 @@ pub mod crowdfunding {
         Ok(())
     }
 
-    pub fn set_closed(ctx: Context<AdminModifier>, close: bool) -> Result<()> {
+    pub fn set_closed(ctx: Context<Modifier>, close: bool) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
-        ido_account.set_closed(ctx.accounts.authority.key, &close)?;
+        ido_account.set_closed(ctx.accounts.user.key, &close)?;
         Ok(())
     }
 
-    pub fn set_cap(ctx: Context<AdminModifier>, cap: u64) -> Result<()> {
+    pub fn set_cap(ctx: Context<Modifier>, cap: u64) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
-        ido_account.set_cap(ctx.accounts.authority.key, &cap)?;
+        ido_account.set_cap(ctx.accounts.user.key, &cap)?;
         Ok(())
     }
 
-    pub fn set_rate(ctx: Context<AdminModifier>, rate: u16) -> Result<()> {
+    pub fn set_rate(ctx: Context<Modifier>, rate: u16) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
-        ido_account.set_rate(ctx.accounts.authority.key, &rate)?;
+        ido_account.set_rate(ctx.accounts.user.key, &rate)?;
         Ok(())
     }
-    pub fn set_open_timestamp(ctx: Context<AdminModifier>, open_timestamp: u32) -> Result<()> {
+    pub fn set_open_timestamp(ctx: Context<Modifier>, open_timestamp: u32) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
-        ido_account.set_open_timestamp(ctx.accounts.authority.key, &open_timestamp)?;
+        ido_account.set_open_timestamp(ctx.accounts.user.key, &open_timestamp)?;
         Ok(())
     }
     //transferNativeToken
@@ -323,8 +285,6 @@ pub mod crowdfunding {
         if !ctx.accounts.authority.is_signer {
             return Err(ProgramError::MissingRequiredSignature.into());
         }
-        
-
 
         let destination = &ctx.accounts.to_ata;
         let source = &ctx.accounts.from_ata;
@@ -342,7 +302,7 @@ pub mod crowdfunding {
         let admin = &ctx.accounts.authority.key();
         let _ido_id = &ctx.accounts.ido_account.ido_id;
 
-        let _signer: &[&[&[u8]]] = &[&[
+        let seeds: &[&[&[u8]]] = &[&[
             b"sol_ido_pad",
             admin.as_ref(),
             &_ido_id.to_le_bytes(),
@@ -350,28 +310,33 @@ pub mod crowdfunding {
         ]];
 
         let cpi_ctx = CpiContext::new(token_program.to_account_info(), transfer_instruction)
-            .with_signer(_signer);
+            .with_signer(seeds);
         anchor_spl::token::transfer(cpi_ctx, amount)?;
         Ok(())
     }
 
-    //user join IDO: test
+    //user join IDO: need test
     pub fn participate(ctx: Context<Participate>, amount: u64) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
-        let user_pda = &mut ctx.accounts.user_pda_account;
         let user = &ctx.accounts.user;
         // let system_program = &ctx.accounts.system_program;
 
         require!(amount > 0, IDOProgramErrors::InvalidAmount);
 
-        let (_, round, round_state, _, _) = _info_wallet(ido_account, user_pda);
+        let (tier, round, round_state, _, _) = ido_account._info_wallet(user.key);
 
-        require!( round_state == 1 || round_state == 3, IDOProgramErrors::ParticipationNotValid);
+        require!(
+            round_state == 1 || round_state == 3,
+            IDOProgramErrors::ParticipationNotValid
+        );
 
-        let allocation_remaining = get_allocation_remaining(ido_account, &round, user_pda);
+        let allocation_remaining = ido_account.get_allocation_remaining(&round, &tier, user.key);
 
         //check allocation remaining
-        require!( allocation_remaining >= amount, IDOProgramErrors::AmountExceedsRemainingAllocation);
+        require!(
+            allocation_remaining >= amount,
+            IDOProgramErrors::AmountExceedsRemainingAllocation
+        );
 
         //if raise token is native token
         if ido_account._raise_token == Pubkey::from_str(NATIVE_MINT).unwrap() {
@@ -418,7 +383,6 @@ pub mod crowdfunding {
 
         //update participated of contract
         ido_account.update_participate(&round, user.key, &amount)?;
-        user_pda.update_participate(&amount)?;
 
         Ok(())
     }
@@ -508,7 +472,7 @@ pub mod crowdfunding {
     release_token: String,
     _ido_id: u32)]
 pub struct InitializeIdoAccount<'info> {
-    #[account(init_if_needed,  payer = authority,  space = 9000,  seeds = [b"sol_ido_pad",  authority.key().as_ref() ,  &_ido_id.to_le_bytes()], bump)]
+    #[account(init_if_needed, has_one = authority,  payer = authority,  space = 9000,  seeds = [b"sol_ido_pad",  authority.key().as_ref() ,  &_ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
     pub token_mint: Account<'info, Mint>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
@@ -531,13 +495,15 @@ pub struct IdoAccount {
     pub _closed: bool,
     pub _release_token: Pubkey,
     pub _release_token_pair: Pubkey,
+    pub _tiers: Vec<TierItem>,
+    pub _rounds: Vec<RoundItem>,
+    pub _releases: Vec<ReleaseItem>,
+    // pub _raise_token_account: Pubkey,
+    // __raise_associated_token: Pubkey,
     _release_token_decimals: u8,
     _raise_token_decimals: u8,
     authority: Pubkey,
     pub ido_id: u32,
-    pub _tiers: Vec<TierItem>,
-    pub _rounds: Vec<RoundItem>,
-    pub _releases: Vec<ReleaseItem>,
 }
 trait IdoStrait {
     //setter function
@@ -573,6 +539,7 @@ trait IdoStrait {
 
     fn set_release_token(
         &mut self,
+        user: &Pubkey,
         token: &Pubkey,
         pair: &Pubkey,
         token_decimals: &u8,
@@ -596,7 +563,14 @@ trait IdoStrait {
         class_list: &Vec<RoundClass>,
     ) -> Result<()>;
 
-
+    // modify_tier_allocated
+    fn modify_tier_allocated(
+        &mut self,
+        user: &Pubkey,
+        index: &u32,
+        addresses: &Vec<String>,
+        remove: &bool,
+    ) -> Result<()>;
 
     fn set_rate(&mut self, user: &Pubkey, rate: &u16) -> Result<()>;
 
@@ -619,7 +593,7 @@ trait IdoStrait {
         index: usize,
     ) -> (u32, u32, u16, u64, u64, u64, u64, u8);
 
-   
+    fn _info_wallet(&mut self, wallet: &Pubkey) -> (u16, u16, u8, String, u32);
 
     fn close_timestamp(&self) -> u32;
 
@@ -629,7 +603,9 @@ trait IdoStrait {
 
     fn get_participated_total(&self, wallet: &Pubkey) -> u64;
 
+    fn get_tier(&self, wallet: &Pubkey) -> u16;
 
+    fn get_allocation_remaining(&self, round: &u16, tier: &u16, wallet: &Pubkey) -> u64;
 }
 
 impl IdoStrait for IdoAccount {
@@ -666,13 +642,38 @@ impl IdoStrait for IdoAccount {
         //add tier
         self.add_tier(TierItem {
             name: String::from("Lottery Winners"),
+            allocated: vec![],
+            // allocated_count: 0,
         });
         self.add_tier(TierItem {
             name: String::from("Top 100"),
+            allocated: vec![],
             // allocated_count: 0,
         });
         self.add_tier(TierItem {
             name: String::from("Top 200"),
+            allocated: vec![],
+            // allocated_count: 0,
+        });
+        self.add_tier(TierItem {
+            name: String::from("Top 300"),
+            allocated: vec![],
+            // allocated_count: 0,
+        });
+        self.add_tier(TierItem {
+            name: String::from("Top 400"),
+            allocated: vec![],
+            // allocated_count: 0,
+        });
+        self.add_tier(TierItem {
+            name: String::from("Top 500"),
+            allocated: vec![],
+            // allocated_count: 0,
+        });
+        self.add_tier(TierItem {
+            name: String::from("Top 600"),
+            allocated: vec![],
+            // allocated_count: 0,
         });
         Ok(())
     }
@@ -707,7 +708,6 @@ impl IdoStrait for IdoAccount {
     }
 
     fn add_tier(&mut self, tier: TierItem) {
-        
         self._tiers.push(tier);
     }
 
@@ -752,11 +752,12 @@ impl IdoStrait for IdoAccount {
 
     fn set_release_token(
         &mut self,
+        user: &Pubkey,
         token: &Pubkey,
         pair: &Pubkey,
         token_decimals: &u8,
     ) -> Result<()> {
-        // require!(self._is_admin(user), IDOProgramErrors::NotAuthorized);
+        require!(self._is_admin(user), IDOProgramErrors::NotAuthorized);
 
         self._release_token = *token;
         self._release_token_pair = *pair;
@@ -814,7 +815,35 @@ impl IdoStrait for IdoAccount {
         Ok(())
     }
 
-   
+    //modify_tier_allocated
+    fn modify_tier_allocated(
+        &mut self,
+        user: &Pubkey,
+        index: &u32,
+        addresses: &Vec<String>,
+        remove: &bool,
+    ) -> Result<()> {
+        require!(self._is_admin(user), IDOProgramErrors::NotAuthorized);
+
+        match self._tiers.get_mut(*index as usize) {
+            Some(tier) => {
+                for (_, address) in addresses.iter().enumerate() {
+                    let address = Pubkey::from_str(address).unwrap();
+                    let al = {
+                        &AllocateTier {
+                            address,
+                            allocated: !remove,
+                        }
+                    };
+                    tier.add_allocated(al)
+                }
+            }
+            None => {
+                return err!(IDOProgramErrors::InvalidInDex);
+            }
+        }
+        Ok(())
+    }
 
     fn set_rate(&mut self, user: &Pubkey, rate: &u16) -> Result<()> {
         require!(self._is_admin(user), IDOProgramErrors::NotAuthorized);
@@ -853,6 +882,7 @@ impl IdoStrait for IdoAccount {
 
         Ok(())
     }
+    //fn transfer_spl_token
 
     //implement function _claim
     fn _claim(&mut self, index: &u16, claimant: &Pubkey) -> Result<()> {
@@ -985,7 +1015,61 @@ impl IdoStrait for IdoAccount {
         }
     }
 
-   
+    fn _info_wallet(&mut self, wallet: &Pubkey) -> (u16, u16, u8, String, u32) {
+        let mut round = 0;
+        let mut round_state = 4;
+        let mut round_state_text = String::from("");
+        let mut round_timestamp = 0;
+        let is_close = self._is_close();
+        let tier = self.get_tier(wallet);
+        if !is_close {
+            let mut ts = self._open_timestamp;
+            let now_ts = Clock::get().unwrap().unix_timestamp as u32;
+
+            if now_ts < ts {
+                round_state = 0;
+                round_state_text = String::from("Allocation Round <u>opens</u> in:");
+                round_timestamp = ts;
+            } else {
+                let rounds = self._rounds.clone();
+
+                for (i, _round) in rounds.iter().enumerate() {
+                    round = i.add(1);
+                    ts = ts.safe_add(_round.duration_seconds).unwrap();
+
+                    if now_ts < ts {
+                        match _round.class {
+                            RoundClass::Allocation => {
+                                round_state = 1;
+                                round_state_text =
+                                    String::from("Allocation Round <u>closes</u> in:");
+                                round_timestamp = ts;
+                            }
+                            RoundClass::FcfsPrepare => {
+                                round_state = 2;
+                                round_state_text = String::from("FCFS Round <u>opens</u> in:");
+                                round_timestamp = ts;
+                            }
+                            RoundClass::Fcfs => {
+                                round_state = 3;
+                                round_state_text = String::from("FCFS Round <u>closes</u> in:");
+                                round_timestamp = ts;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        return (
+            tier,
+            round as u16,
+            round_state,
+            round_state_text,
+            round_timestamp,
+        );
+    }
 
     fn close_timestamp(&self) -> u32 {
         let mut ts = self._open_timestamp;
@@ -1037,9 +1121,48 @@ impl IdoStrait for IdoAccount {
         return participated_total;
     }
 
+    fn get_tier(&self, wallet: &Pubkey) -> u16 {
+        let tiers = self._tiers.clone();
+        for (i, tier) in tiers.iter().enumerate() {
+            if tier.get_allocated(wallet) {
+                return (i + 1) as u16;
+            }
+        }
+        return 0;
+    }
 
+    fn get_allocation_remaining(&self, round: &u16, tier: &u16, wallet: &Pubkey) -> u64 {
+        if *round == 0 || *tier == 0 {
+            return 0;
+        }
+        let round_index = round.safe_sub(1).unwrap_or(0) as usize;
+        let tier_index = tier.safe_sub(1).unwrap_or(0);
+        let tiers = self._tiers.clone();
+        let rounds = self._rounds.clone();
 
-    
+        match tiers.get(tier_index as usize) {
+            Some(tier) => {
+                if tier.get_allocated(wallet) {
+                    match rounds.get(round_index) {
+                        Some(round) => {
+                            let participated = round.get_participated_of_address(wallet);
+                            let allocated = round.get_tier_allocation(tier_index);
+                            if participated < allocated {
+                                return allocated.safe_sub(participated).unwrap();
+                            }
+                        }
+                        None => {
+                            return 0;
+                        }
+                    }
+                }
+            }
+            None => {
+                0;
+            }
+        }
+        return 0;
+    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
@@ -1067,7 +1190,7 @@ impl RoundItem {
         }
         return 0;
     }
-    pub fn get_tier_allocation(&self, index: u8) -> u64 {
+    pub fn get_tier_allocation(&self, index: u16) -> u64 {
         let tier_allocations = self.tier_allocations.clone();
         match tier_allocations.get(index as usize) {
             Some(&tier) => {
@@ -1150,41 +1273,96 @@ impl ClaimedAmount {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct TierItem {
-    pub name: String
+    pub name: String,
+    pub allocated: Vec<AllocateTier>,
 }
 
+impl TierItem {
+    pub fn add_allocated(&mut self, al: &AllocateTier) {
+        let allocated = self.allocated.clone();
+        //check al in allocated
+        let mut check_exits = false;
+        let mut index: usize = 0;
+        for (i, item) in allocated.iter().enumerate() {
+            if item.address == al.address {
+                check_exits = true;
+                index = i;
+                break;
+            }
+        }
+        //if exits update else add in to vector
+        if check_exits {
+            self.allocated[index].allocated = al.allocated;
+        } else {
+            self.allocated.push(al.clone());
+        }
+    }
+    pub fn get_allocated(&self, address: &Pubkey) -> bool {
+        let allocated = self.allocated.clone();
+
+        for (_, item) in allocated.iter().enumerate() {
+            if item.address == *address {
+                return item.allocated;
+            }
+        }
+        return false;
+    }
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+pub struct AllocateTier {
+    pub address: Pubkey,
+    pub allocated: bool,
+}
+impl AllocateTier {
+    pub fn new(address: Pubkey, allocated: bool) -> Self {
+        Self { address, allocated }
+    }
+    // check  allocated
+    pub fn is_address_allocated(&self, address: Pubkey) -> bool {
+        if self.address == address {
+            return self.allocated;
+        }
+        return false;
+    }
+}
 
 #[derive(Accounts)]
 pub struct SetupReleaseToken<'info> {
-    #[account(mut,  constraint = ido_account.authority == authority.key())]
+    #[account(mut)]
     pub ido_account: Account<'info, IdoAccount>,
-    #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
+    #[account(init_if_needed,  payer = user, associated_token::mint = token_mint, associated_token::authority = ido_account)]
     pub release_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
-    pub authority: Signer<'info>,
+    pub user: Signer<'info>,
     pub token_mint: Account<'info, Mint>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
 }
 
+#[derive(Accounts)]
+pub struct ModifyTier<'info> {
+    #[account(mut)]
+    pub ido_account: Account<'info, IdoAccount>,
+    #[account(mut)]
+    pub user: Signer<'info>,
 
+    pub system_program: Program<'info, System>,
+}
 
 #[derive(Accounts)]
 pub struct Participate<'info> {
-    #[account(mut, seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
+    #[account()]
     pub ido_account: Account<'info, IdoAccount>,
-
-    #[account(   mut, seeds = [b"wl_ido_pad", user.key().as_ref(), ido_account.key().as_ref()], bump)]
-    pub user_pda_account: Account<'info, PdaUserStats>,
 
     #[account(mut)]
     pub deposit_token_account: Account<'info, TokenAccount>,
-    
+
     #[account(mut)]
     pub receive_token_account: Account<'info, TokenAccount>,
 
-    #[account(signer)]
+    #[account(mut)]
     pub user: Signer<'info>,
 
     pub token_program: Program<'info, Token>,
@@ -1208,22 +1386,34 @@ pub struct ClaimToken<'info> {
 }
 
 #[derive(Accounts)]
-pub struct AdminModifier<'info> {
-    #[account(mut, constraint = ido_account.authority == authority.key())]
+pub struct SetupReleases<'info> {
+    #[account(mut)]
     pub ido_account: Account<'info, IdoAccount>,
 
-    #[account(signer)]
-    pub authority: Signer<'info>,
+    #[account(mut)]
+    pub user: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+#[derive(Accounts)]
+pub struct Modifier<'info> {
+    #[account(mut)]
+    pub ido_account: Account<'info, IdoAccount>,
+
+    #[account(mut)]
+    pub user: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct TransferNativeToken<'info> {
-    #[account(mut, constraint = ido_account.authority == user.key())]
+    #[account(mut)]
     pub ido_account: Account<'info, IdoAccount>,
+
     #[account(mut)]
     pub user: Signer<'info>,
+
     pub system_program: Program<'info, System>,
 }
 
@@ -1240,8 +1430,9 @@ pub struct TransferSplToken<'info> {
 #[derive(Accounts)]
 pub struct WithdrawTokenFromPda<'info> {
     #[account(mut,
-        has_one = authority, constraint = ido_account.authority == authority.key(),
-        seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+        has_one = authority, 
+
+         seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -1256,67 +1447,24 @@ pub struct WithdrawTokenFromPda<'info> {
     pub system_program: Program<'info, System>,
 }
 
-
 #[derive(Accounts)]
-pub struct ModifyTierAllocatedMulti<'info>{
-    #[account(mut, seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
-    pub ido_account: Account<'info, IdoAccount>,
+pub struct CreateTokenAccount<'info> {
+    #[account(
+        init_if_needed,
+        payer = payer, 
+        associated_token::mint = mint, 
+        associated_token::authority = payer
+    )]
+    pub token_account: Account<'info, TokenAccount>,
+    pub mint: Account<'info, Mint>,
     #[account(mut)]
-    pub authority: Signer<'info>,
-    pub system_program: Program<'info, System>, 
-}
-#[derive(Accounts)]
-#[instruction(
-    index: u8,
-    address: Pubkey,
-    remove: bool)]
-pub struct ModifyTierAllocatedOne<'info> {
-    #[account( init_if_needed, payer = authority, space = 32+32+16+16+1+1, 
-        seeds = [b"wl_ido_pad", address.as_ref(), ido_account.key().as_ref()], bump)]
-    pub user_ido_account: Account<'info, PdaUserStats>,
-    #[account(mut, seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
-    pub ido_account: Account<'info, IdoAccount>,
-    #[account(mut)]
-    pub authority: Signer<'info>,
+    pub payer: Signer<'info>,
+    ///CHECK
     pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub rent: Sysvar<'info, Rent>,
 }
-
-#[account]
-pub struct PdaUserStats {
-    pub address: Pubkey, //16
-    pub tier_index: u8, //1
-    pub allocated: bool, //1
-    pub participate_amount: u64, //16
-    pub claim_amount: u64, //16
-    pub owner: Pubkey,//32
-}
-impl PdaUserStats{
-    pub fn init_user_pda(&mut self, tier_index: &u8,address:&Pubkey, owner:&Pubkey, allocated: &bool) -> Result<()>  {
-        self.tier_index = *tier_index;
-        self.address = *address;
-        self.owner = *owner;
-        self.tier_index = *tier_index;
-        self.allocated = *allocated;
-        self.participate_amount = 0;
-        self.claim_amount = 0;
-        Ok(())
-
-    }
-    pub fn update_allocate(&mut self,tier_index: &u8, allocated:&bool){
-        self.tier_index = *tier_index;
-        self.allocated = *allocated; 
-    }
-    pub fn update_participate(&mut self, participate_amount:&u64)-> Result<()>{
-        self.participate_amount.safe_add(*participate_amount)?; 
-        Ok(())
-    }
-    pub fn update_claim(&mut self, claim_amount:&u64)-> Result<()>{
-        self.claim_amount.safe_add(*claim_amount)?; 
-        Ok(())
-    }
-
-}
-
 
 /**
  * Get event structure
@@ -1366,91 +1514,4 @@ impl From<IDOProgramErrors> for ProgramError {
     fn from(e: IDOProgramErrors) -> Self {
         ProgramError::Custom(e as u32)
     }
-}
-
-fn _info_wallet( ido_account:&mut IdoAccount,  user_pda: &mut PdaUserStats) -> (u8, u16, u8, String, u32) {
-        
-    let mut round = 0;
-    let mut round_state = 4;
-    let mut round_state_text = String::from("");
-    let mut round_timestamp = 0;
-    let is_close = ido_account._is_close();
-    let tier: u8 = if user_pda.allocated  { user_pda.clone().tier_index } else { 0 };
-
-    if !is_close {
-        let mut ts = ido_account._open_timestamp;
-        let now_ts = Clock::get().unwrap().unix_timestamp as u32;
-
-        if now_ts < ts {
-            round_state = 0;
-            round_state_text = String::from("Allocation Round <u>opens</u> in:");
-            round_timestamp = ts;
-        } else {
-            let rounds = ido_account._rounds.clone();
-
-            for (i, _round) in rounds.iter().enumerate() {
-                round = i.add(1);
-                ts = ts.safe_add(_round.duration_seconds).unwrap();
-
-                if now_ts < ts {
-                    match _round.class {
-                        RoundClass::Allocation => {
-                            round_state = 1;
-                            round_state_text =
-                                String::from("Allocation Round <u>closes</u> in:");
-                            round_timestamp = ts;
-                        }
-                        RoundClass::FcfsPrepare => {
-                            round_state = 2;
-                            round_state_text = String::from("FCFS Round <u>opens</u> in:");
-                            round_timestamp = ts;
-                        }
-                        RoundClass::Fcfs => {
-                            round_state = 3;
-                            round_state_text = String::from("FCFS Round <u>closes</u> in:");
-                            round_timestamp = ts;
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-    }
-
-    return (
-        tier,
-        round as u16,
-        round_state,
-        round_state_text,
-        round_timestamp,
-    );
-}
-
-fn get_allocation_remaining(ido_account:&mut IdoAccount, round: &u16, user_pda: &PdaUserStats) -> u64 {
-
-    let tier =  user_pda.clone().tier_index;
-    if *round == 0 || tier == 0  || !user_pda.allocated{
-        return 0;
-    }
-    let round_index = round.safe_sub(1).unwrap_or(0) as usize;
-    let _tier_index = tier.safe_sub(1).unwrap_or(0);
-    // let tiers = ido_account._tiers.clone();
-    let rounds = ido_account._rounds.clone();
-    
-
-    if user_pda.allocated {
-        match rounds.get(round_index) {
-            Some(round) => {
-                let participated = user_pda.participate_amount;
-                let allocated = round.get_tier_allocation(_tier_index);
-                if participated < allocated {
-                    return allocated.safe_sub(participated).unwrap();
-                }
-            }
-            None => {
-                return 0;
-            }
-    }  
-    }
-    return 0;
 }

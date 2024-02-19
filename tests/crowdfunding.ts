@@ -3,6 +3,7 @@ import { Crowdfunding } from "../target/types/crowdfunding";
 import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SOLANA_SCHEMA, Signer } from "@solana/web3.js";
 import { Program, AnchorProvider, web3, utils, BN } from '@project-serum/anchor';
 import { assert, expect } from "chai";
+import moment from 'moment'
 import {
   getAssociatedTokenAddress,
   createMint,
@@ -12,10 +13,10 @@ import {
   getOrCreateAssociatedTokenAccount,
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token"
-const idoPDAs = Keypair.generate();
 // let IDO_TEST = "ARRwPx2wrkn1MHvicoSam1tRFFkXxRKHQcqTgBBYsaut";
 
 describe("crowd funding testing", () => {
+  let programId = new PublicKey("6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq");
 
   const getTokenInfoByTokenAccount = async (connection: Connection, token_mint: String, toWalletPub: String) => {
 
@@ -74,16 +75,15 @@ describe("crowd funding testing", () => {
   const program = anchor.workspace.Crowdfunding as Program<Crowdfunding>;
 
   const raise_token_test = "3uWjtg9ZRjGbSzxYx4NgDLBwdFxhPLi9aArN9tiu6m8b";
-  const ido_id = 18;
-  const ido_address_test = "EW1LDGKJM6NTPsPR7e9rmQBmFUapLym3DFPXDsmpb5pr";
+  const ido_id = 23;
 
 
   // it("initialize Ido program", async () => {
 
   //   const rate =  1000;
-  //   const openTimestamp = 1705534720;
-  //   const allocationDuration = 1705544720;
-  //   const fcfsDuration = 1705545720;
+  //   const openTimestamp = convertTimeTimeTo("2024/02/19 15:00:00");
+  //   const allocationDuration =  convertTimeTimeTo("2024/02/19 16:00:00");;
+  //   const fcfsDuration =  convertTimeTimeTo("2024/02/19 17:00:00");;
   //   const cap = new BN(10*LAMPORTS_PER_SOL);
 
 
@@ -162,68 +162,37 @@ describe("crowd funding testing", () => {
 
   // });
 
-  // it("withdraw_token_from_pda", async () => {
-
-
-  //   const IDO_PUB = new PublicKey(ido_address_test);
-  //   const token_mint = new PublicKey(raise_token_test);
-
-  //   try {
-
-  //     const idoAtaAccount = getAssociatedTokenAddressSync(token_mint, IDO_PUB, true);
-  //     const toAtaAccount = getAssociatedTokenAddressSync(token_mint, provider.publicKey, true);
-
-  //     console.log("idoAtaAccount: ", idoAtaAccount.toString());
-  //     console.log("toAtaAccount: ", toAtaAccount.toString());
-
-
-  //     //   console.log((tokenAccountInfo.value?.data).parsed.info.tokenAmount.amount);
-  //     let amount = new BN(0.1 * LAMPORTS_PER_SOL);
-  //     let tx = await program.methods.withdrawTokenFromPda(amount).accounts({
-  //       idoAccount: IDO_PUB,
-  //       authority: provider.publicKey,
-  //       fromAta: idoAtaAccount,
-  //       toAta: toAtaAccount,
-  //       tokenProgram: TOKEN_PROGRAM_ID,
-  //       systemProgram: web3.SystemProgram.programId,
-  //     }).rpc();
-  //     console.log("joinIDO success at tx: ", tx);
-  //   } catch (error) {
-  //     console.log(error);
-  //     // assert.equal(false, true, "transfer_spl_token_from_pda error");
-
-  //   }
-  // });
+  
 
 
 
-  // create_token_account
 
-  // test modify tier
+
   // it("set_cap", async () => {
-
+  //   let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
   //   const cap = new BN(10*LAMPORTS_PER_SOL);
   //   await program.methods.setCap(cap).accounts({
-  //     idoAccount: new PublicKey(ido_address_test),
+  //     idoAccount: idoPDA,
   //     authority: provider.wallet.publicKey,
   //     systemProgram: anchor.web3.SystemProgram.programId,
   //   }).rpc();
 
-  //   const idoInfo = await getInfoIdoAccount(program, ido_address_test);
+  //   const idoInfo = await getInfoIdoAccount(program, idoPDA.toString());
   //   const _cap = idoInfo._cap;
   //   assert.equal(idoInfo._cap, _cap, "cap  is setup");
 
   // })
   // it("set rate", async () => {
+  //   let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
   //   const rate = 10000;
 
   //   await program.methods.setRate(rate).accounts({
-  //     idoAccount: new PublicKey(ido_address_test),
+  //     idoAccount: idoPDA,
   //     authority: provider.wallet.publicKey,
   //     systemProgram: anchor.web3.SystemProgram.programId,
   //   }).rpc();
 
-  //   const idoInfo = await getInfoIdoAccount(program, ido_address_test);
+  //   const idoInfo = await getInfoIdoAccount(program, idoPDA.toString());
   //   console.log(JSON.stringify(idoInfo));
     
 
@@ -234,19 +203,20 @@ describe("crowd funding testing", () => {
 
 
   // it("set open timestamp", async () => {
-  //   const timestamp = (new Date().getTime() + 60*100*60) /1000;
-  //   console.log("timestamp=>", timestamp);
+  //   let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
+
+  //   const timestamp = convertTimeTimeTo("2024/02/19 15:15:00");
 
   //   await program.methods.setOpenTimestamp(timestamp).accounts({
-  //     idoInfo: idoAccountTest,
-  //     user: provider.wallet.publicKey,
+  //     idoAccount: idoPDA,
+  //     authority: provider.wallet.publicKey,
   //     systemProgram: anchor.web3.SystemProgram.programId,
   //     }).rpc();
 
 
-  //   const idoInfo = await getInfoIdoAccount(program, IDO_TEST);
+  //   const idoInfo = await getInfoIdoAccount(program, idoPDA.toString());
 
-  //   console.log(JSON.stringify(idoInfo));
+
 
   //   const _open_timestamp = idoInfo._open_timestamp;
   //   assert.equal(idoInfo._open_timestamp, _open_timestamp, "_open_timestamp  is setup");
@@ -307,65 +277,38 @@ describe("crowd funding testing", () => {
 
 
 
-  it("setup release token", async () => {
 
-    const release_token = "Hv6634qu7ucXkaHDgcH3H5fUH1grmSNwpspYdCkSG7hK";
-    const pair_release_token = "5yAX4HZEq9X2DumUkotrmPLPuFGVuMkWphUF2EcmtyBS";
+
+
+  it("modify_round_allocations", async () => {
+
     let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
- 
-    const token_mint = new PublicKey(release_token);
 
+    const round_index = 0;
+    const tierAllocations = [new BN(1 * LAMPORTS_PER_SOL), new BN(2 * LAMPORTS_PER_SOL) , new BN(3 * LAMPORTS_PER_SOL)];
 
     try {
-      const releaseAtaAccount = getAssociatedTokenAddressSync(token_mint, idoPDA, true);
-
-      console.log("releaseAtaAccount:", releaseAtaAccount.toString());
-      await program.methods.setupReleaseToken(release_token, pair_release_token).accounts({
+      await program.methods.modifyRoundAllocations(round_index, tierAllocations).accounts( {
         idoAccount: idoPDA,
-        releaseTokenAccount: releaseAtaAccount,
-        tokenMint: token_mint, 
         authority: provider.wallet.publicKey,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        systemProgram: web3.SystemProgram.programId,
-      }).rpc()
+        systemProgram: anchor.web3.SystemProgram.programId,
+      }).rpc();
   
+     const idoInfo = await getInfoIdoAccount(program, idoPDA.toString());
+     console.log(JSON.stringify(idoInfo));
+     const  roundAllocations = idoInfo.rounds[round_index].tierAllocations;
+     for (let i = 0; i < roundAllocations.length; i++) {
+        const tierAl = roundAllocations[i];
+        assert.equal(tierAl.toString(), tierAllocations[i].toString(), "tier allocation is amount setup");
+     }
     } catch (error) {
       console.log(error);
       
     }
-   
-   const idoInfo = await getInfoIdoAccount(program, idoPDA.toString());
-   console.log(JSON.stringify(idoInfo));
+    //test setupReleaseToken  -> OK
+    
 
-
-    const _releaseToken = idoInfo.releaseToken;
-    assert.equal(_releaseToken.toString(), release_token.toString(), "release token is token setup");
-    const _releaseTokenPair = idoInfo.releaseTokenPair;
-    assert.equal(_releaseTokenPair.toString(), pair_release_token.toString(), "release token pair is pair setup");
   });
-
-
-  // it("modify_round_allocations", async () => {
-  //   if(!idoAccount) return;
-  //   const index = 0;
-  //   const tierAllocations = [new BN(0.1 * LAMPORTS_PER_SOL), new BN(0.02 * LAMPORTS_PER_SOL) ];
-
-  //   //test setupReleaseToken  -> OK
-  //   await program.methods.modifyRoundAllocations(index, tierAllocations).accounts( {
-  //     idoInfo: idoAccountTest,
-  //     user: provider.wallet.publicKey,
-  //     systemProgram: anchor.web3.SystemProgram.programId,
-  //   }).rpc();
-
-  //  const idoInfo = await getInfoIdoAccount(program, IDO_TEST);
-  //  const  roundAllocations = idoInfo.rounds[index].tierAllocations;
-  //  for (let i = 0; i < roundAllocations.length; i++) {
-  //     const tierAl = roundAllocations[i];
-  //     assert.equal(tierAl.toString(), tierAllocations[i].toString(), "tier allocation is amount setup");
-  //  }
-
-  // });
 
   // test modify tier
   // it("modify tier", async () => {
@@ -467,47 +410,44 @@ describe("crowd funding testing", () => {
 
   // })
 
-  // it("modify_tier_allocated_one", async () => {
-  //   const add1 = "CjZ4nLk8RLmk89hhFZhJT6QNRUUcgGPqMgBMZ5x3re67";
-  //   let user1 = new PublicKey(add1)
-  //   let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
-  //   let userPDA =  getPdaUser(program.programId, idoPDA, user1, "wl_ido_pad");
-  //   const index = 0;
+  it("modify_tier_allocated_one", async () => {
+    const add1 = "38TpuZRB5ikSX7p2Q7FbjY1UppwdZ1GZRuhGTdL7U1y8";
+    let user1 = new PublicKey(add1)
+    let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
+    let userPDA =  getPdaUser(program.programId, idoPDA, user1, "wl_ido_pad");
+    const index = 0;
    
-  //   const add2 = "9kPRkHCcnhgpByJc4fyYuPU6EU68yzC5yKRQrwm2cNYS";
-  //   const add3 = "HwzR86jCMDsddsNY6xYNk6qC8kSvTaEMFSQmemCWsyxS";
-  //   const add4 = "Bf2VHp1uBLAUvuWDVLSdYUeJ5dZcJonBT93kjHgEznoQ";
-  //   // let idoAccountTest = new PublicKey('Fs2deA3RCKoeT8NMfUb6KdRyx5brwnwWQJfycWnwQw5V');
+    // let idoAccountTest = new PublicKey('Fs2deA3RCKoeT8NMfUb6KdRyx5brwnwWQJfycWnwQw5V');
 
-  //   const addresses = [add1,add2, add3, add4]
 
-  //   console.log("userPDA: ", userPDA.toString());
-  //   console.log("idoPDA: ", idoPDA.toString());
+
+    console.log("userPDA: ", userPDA.toString());
+    console.log("idoPDA: ", idoPDA.toString());
    
-  //  const remove = true;
-  //  try {
-  //   await program.methods.modifyTierAllocatedOne(index, user1, remove).accounts({
+   const remove = false;
+   try {
+    await program.methods.modifyTierAllocatedOne(index, user1, remove).accounts({
       
-  //     idoAccount: idoPDA,
-  //     authority: provider.wallet.publicKey,
-  //     systemProgram: anchor.web3.SystemProgram.programId,
-  //     userIdoAccount: userPDA
-  //   }).rpc();
+      idoAccount: idoPDA,
+      authority: provider.wallet.publicKey,
+      systemProgram: anchor.web3.SystemProgram.programId,
+      userIdoAccount: userPDA
+    }).rpc();
 
-  //   let userInfo = await program.account.pdaUserStats.fetch(userPDA);
+    let userInfo = await program.account.pdaUserStats.fetch(userPDA);
 
-  //   // const userInfo = await getInfoIdoAccount(program, userPDA.toString());
-  //   console.log(JSON.stringify(userInfo));
+    // const userInfo = await getInfoIdoAccount(program, userPDA.toString());
+    console.log(JSON.stringify(userInfo));
     
-  //   assert.equal(userInfo.tierIndex, index, `${user1} is add in tier ${index}`);
+    assert.equal(userInfo.tierIndex, index, `${user1} is add in tier ${index}`);
  
-  //   assert.equal(userInfo.allocated, !remove, `address has allocated change: ${!remove}`);
-  //   assert.equal(userInfo.address.toString(), user1.toString(), `${user1} is add white list`);
-  //  } catch (error) {
-  //   console.log(error);
+    assert.equal(userInfo.allocated, !remove, `address has allocated change: ${!remove}`);
+    assert.equal(userInfo.address.toString(), user1.toString(), `${user1} is add white list`);
+   } catch (error) {
+    console.log(error);
     
-  //  }
-  // })
+   }
+  })
 
 
   //  it("modify_tier_allocated_multi", async () => {
@@ -570,11 +510,84 @@ describe("crowd funding testing", () => {
 
 
 
+  // it("setup release token", async () => {
+
+  //   const release_token = "Hv6634qu7ucXkaHDgcH3H5fUH1grmSNwpspYdCkSG7hK";
+  //   const pair_release_token = "5yAX4HZEq9X2DumUkotrmPLPuFGVuMkWphUF2EcmtyBS";
+  //   let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
+ 
+  //   const token_mint = new PublicKey(release_token);
 
 
+  //   try {
+  //     const releaseAtaAccount = getAssociatedTokenAddressSync(token_mint, idoPDA, true);
+
+  //     console.log("releaseAtaAccount:", releaseAtaAccount.toString());
+  //     await program.methods.setupReleaseToken(release_token, pair_release_token).accounts({
+  //       idoAccount: idoPDA,
+  //       releaseTokenAccount: releaseAtaAccount,
+  //       tokenMint: token_mint, 
+  //       authority: provider.wallet.publicKey,
+  //       tokenProgram: TOKEN_PROGRAM_ID,
+  //       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+  //       systemProgram: web3.SystemProgram.programId,
+  //     }).rpc()
+  
+  //   } catch (error) {
+  //     console.log(error);
+      
+  //   }
+   
+  //  const idoInfo = await getInfoIdoAccount(program, idoPDA.toString());
+  //  console.log(JSON.stringify(idoInfo));
 
 
+  //   const _releaseToken = idoInfo.releaseToken;
+  //   assert.equal(_releaseToken.toString(), release_token.toString(), "release token is token setup");
+  //   const _releaseTokenPair = idoInfo.releaseTokenPair;
+  //   assert.equal(_releaseTokenPair.toString(), pair_release_token.toString(), "release token pair is pair setup");
+  // });
+
+
+  // it("withdraw_token_from_pda", async () => {
+
+
+  //   const IDO_PUB = new PublicKey(ido_address_test);
+  //   const token_mint = new PublicKey(raise_token_test);
+
+  //   try {
+
+  //     const idoAtaAccount = getAssociatedTokenAddressSync(token_mint, IDO_PUB, true);
+  //     const toAtaAccount = getAssociatedTokenAddressSync(token_mint, provider.publicKey, true);
+
+  //     console.log("idoAtaAccount: ", idoAtaAccount.toString());
+  //     console.log("toAtaAccount: ", toAtaAccount.toString());
+
+
+  //     //   console.log((tokenAccountInfo.value?.data).parsed.info.tokenAmount.amount);
+  //     let amount = new BN(0.1 * LAMPORTS_PER_SOL);
+  //     let tx = await program.methods.withdrawTokenFromPda(amount).accounts({
+  //       idoAccount: IDO_PUB,
+  //       authority: provider.publicKey,
+  //       fromAta: idoAtaAccount,
+  //       toAta: toAtaAccount,
+  //       tokenProgram: TOKEN_PROGRAM_ID,
+  //       systemProgram: web3.SystemProgram.programId,
+  //     }).rpc();
+  //     console.log("joinIDO success at tx: ", tx);
+  //   } catch (error) {
+  //     console.log(error);
+  //     // assert.equal(false, true, "transfer_spl_token_from_pda error");
+
+  //   }
+  // });
 
 
 });
+
+const convertTimeTimeTo  = (str_date: string): number=> {
+  const date  = moment(str_date,'yyyy/MM/dd HH:mm:ss')
+  const srt = moment(date).format("X");  
+  return Number(srt) || 0
+}
 

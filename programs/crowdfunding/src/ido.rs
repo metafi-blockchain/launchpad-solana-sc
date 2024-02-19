@@ -187,9 +187,9 @@ pub mod crowdfunding {
 
                 let space = 32 + 1 + 32 + 16 + 16; //PdaUserIdo
 
-                let seeds:&[&[u8]] = &[  b"claim_ido_pad", &authority.key.as_ref(), &_ido_id.to_le_bytes(),  &[ctx.bumps.ido_account]];
+                let seeds:&[&[u8]] = &[  b"user_strait_pad", &authority.key.as_ref(), &_ido_id.to_le_bytes(),  &[ctx.bumps.ido_account]];
                 
-                let (pda, _bump) = Pubkey::find_program_address(&[  "claim_ido_pad".as_ref()], program_id);
+                let (pda, _bump) = Pubkey::find_program_address(&[  "user_strait_pad".as_ref()], program_id);
                 
                 let signers_seeds = &[&seeds[..]];
                 let cpi_create_account = system_instruction::create_account(

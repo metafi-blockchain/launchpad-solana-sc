@@ -90,17 +90,17 @@ pub mod crowdfunding {
 
     pub fn modify_round_allocations(
         ctx: Context<AdminModifier>,
-        index: u32,
+        index: u8,
         tier_allocations: Vec<u64>,
     ) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
 
-        //check owner
-        require!( ido_account._is_admin(&ctx.accounts.authority.key),IDOProgramErrors::NotAuthorized);
+        // require!(index as usize < ido_account._tiers.len(), IDOProgramErrors::InValidTier);
 
         match ido_account._rounds.get_mut(index as usize) {
             Some(r) => {
-                r.tier_allocations = tier_allocations;
+                msg!("round {}", r.name);
+               r.set_tier_allocation(tier_allocations)?;
             }
             None => {
                 return err!(IDOProgramErrors::InvalidInDex);
@@ -143,7 +143,8 @@ pub mod crowdfunding {
         //push tier into ido_account._tiers
         for (_, name) in name_list.iter().enumerate() {
             ido_account.add_tier(TierItem {
-                name: name.to_string()
+                name: name.to_string(),
+                allocated_count: 0
             });
         }
 
@@ -156,9 +157,24 @@ pub mod crowdfunding {
         address: Pubkey,
         remove: bool,
     ) -> Result<()> {
-        let ido_account = & ctx.accounts.ido_account;
+        let ido_account = &mut ctx.accounts.ido_account;
         let user_pda = &mut ctx.accounts.user_ido_account;
         user_pda.init_user_pda(&index, &address, &ido_account.key(), &!remove)?;   
+        //update tier count
+        match ido_account._tiers.get_mut(index as usize){
+            Some(tier) =>{
+                if !remove {
+                    tier.allocated_count = tier.allocated_count.add(1);
+                }else{
+                    if tier.allocated_count > 0 {
+                        tier.allocated_count =  tier.allocated_count.sub(1);
+                    }
+                }
+            }
+            None=>{return err!(IDOProgramErrors::InvalidInDex)}
+        }
+    
+        
         Ok(())
     }
     pub fn modify_tier_allocated_multi(
@@ -311,13 +327,10 @@ pub mod crowdfunding {
             return Err(ProgramError::MissingRequiredSignature.into());
         }
         
-
-
         let destination: &Account<'_, TokenAccount> = &ctx.accounts.to_ata;
         let source = &ctx.accounts.from_ata;
         let token_program: &Program<'_, Token> = &ctx.accounts.token_program;
         let ido_account: &Account<'_, IdoAccount> = &ctx.accounts.ido_account;
-
 
         // Transfer tokens from taker to initializer
         let transfer_instruction = anchor_spl::token::Transfer {
@@ -433,7 +446,7 @@ pub mod crowdfunding {
     release_token: String,
     _ido_id: u32)]
 pub struct InitializeIdoAccount<'info> {
-    #[account(init_if_needed,  payer = authority,  space = 300,  seeds = [b"sol_ido_pad",  authority.key().as_ref() ,  &_ido_id.to_le_bytes()], bump)]
+    #[account(init_if_needed,  payer = authority,  space = 900,  seeds = [b"sol_ido_pad",  authority.key().as_ref() ,  &_ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
     pub token_mint: Account<'info, Mint>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
@@ -534,22 +547,26 @@ impl IdoStrait for IdoAccount {
     }
 
     fn init_tier(&mut self) -> Result<()> {
+        self._tiers = vec![];
         //add tier
         self.add_tier(TierItem {
             name: String::from("Lottery Winners"),
+            allocated_count: 0,
+
         });
         self.add_tier(TierItem {
             name: String::from("Top 100"),
-            // allocated_count: 0,
+            allocated_count: 0,
         });
         self.add_tier(TierItem {
             name: String::from("Top 200"),
+            allocated_count: 0,
         });
         Ok(())
     }
     fn init_rounds(&mut self, allocation_duration: &u32, fcfs_duration: &u32) -> Result<()> {
         //check lai logic add round chỗ constructor của JD tier_allocations
-        //add rounds
+        self._rounds = vec![];
         self.add_round(RoundItem {
             name: String::from("Allocation"),
             duration_seconds: *allocation_duration,
@@ -747,6 +764,10 @@ impl RoundItem {
             }
         }
     }
+    pub fn set_tier_allocation(&mut self, tier_allocations: Vec<u64>)->Result<()> {
+        self.tier_allocations = tier_allocations;
+        Ok(())
+    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
@@ -779,7 +800,8 @@ pub struct ReleaseItem {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct TierItem {
-    pub name: String
+    pub name: String,
+    pub allocated_count: u16
 }
 
 

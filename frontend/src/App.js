@@ -1,19 +1,22 @@
-import { Route, Routes } from "react-router-dom";
-import './App.css';
-import NotFound from "./modules/not-found";
-import Homepage from "./modules/homepage";
-import ScrollToTop from "./components/scrool-to-top";
-import {Buffer} from 'buffer';
-window.Buffer = Buffer;
+import "./App.css";
+import { WalletContext } from "./components/wallet-context";
+import { Provider } from "react-redux";
+import { BrowserRouter as Router } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import store from "./redux/store/store";
+import AppRoutes from "./routes";
 
 const App = () => {
   return (
-    <ScrollToTop>
-      <Routes>
-        <Route path='*' element={<NotFound />} />
-        <Route path='/' element={<Homepage />} />
-      </Routes>
-    </ScrollToTop>
+    <WalletContext>
+      <Provider store={store}>
+        <Router>
+          <AppRoutes />
+        </Router>
+        <ToastContainer />
+      </Provider>
+    </WalletContext>
   );
 };
 

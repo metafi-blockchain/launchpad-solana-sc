@@ -21,7 +21,7 @@
           "isSigner": false
         },
         {
-          "name": "user",
+          "name": "authority",
           "isMut": true,
           "isSigner": true
         },
@@ -77,50 +77,6 @@
       ]
     },
     {
-      "name": "createTokenAccount",
-      "accounts": [
-        {
-          "name": "tokenAccount",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "mint",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "payer",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "CHECK"
-          ]
-        },
-        {
-          "name": "tokenProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "associatedTokenProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "rent",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": []
-    },
-    {
       "name": "modifyRounds",
       "accounts": [
         {
@@ -129,8 +85,8 @@
           "isSigner": false
         },
         {
-          "name": "user",
-          "isMut": true,
+          "name": "authority",
+          "isMut": false,
           "isSigner": true
         },
         {
@@ -171,8 +127,8 @@
           "isSigner": false
         },
         {
-          "name": "user",
-          "isMut": true,
+          "name": "authority",
+          "isMut": false,
           "isSigner": true
         },
         {
@@ -211,8 +167,8 @@
           "isSigner": false
         },
         {
-          "name": "user",
-          "isMut": true,
+          "name": "authority",
+          "isMut": false,
           "isSigner": true
         },
         {
@@ -243,8 +199,8 @@
           "isSigner": false
         },
         {
-          "name": "user",
-          "isMut": true,
+          "name": "authority",
+          "isMut": false,
           "isSigner": true
         },
         {
@@ -273,8 +229,8 @@
           "isSigner": false
         },
         {
-          "name": "user",
-          "isMut": true,
+          "name": "authority",
+          "isMut": false,
           "isSigner": true
         },
         {
@@ -293,10 +249,46 @@
       ]
     },
     {
-      "name": "modifyTierAllocated",
-      "docs": [
-        "* add or remove the address into tier allocation"
+      "name": "modifyTierAllocatedOne",
+      "accounts": [
+        {
+          "name": "userIdoAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "idoAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
       ],
+      "args": [
+        {
+          "name": "index",
+          "type": "u8"
+        },
+        {
+          "name": "address",
+          "type": "publicKey"
+        },
+        {
+          "name": "remove",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "modifyTierAllocatedMulti",
       "accounts": [
         {
           "name": "idoAccount",
@@ -304,7 +296,7 @@
           "isSigner": false
         },
         {
-          "name": "user",
+          "name": "authority",
           "isMut": true,
           "isSigner": true
         },
@@ -324,10 +316,6 @@
           "type": {
             "vec": "string"
           }
-        },
-        {
-          "name": "remove",
-          "type": "bool"
         }
       ]
     },
@@ -340,7 +328,12 @@
           "isSigner": false
         },
         {
-          "name": "user",
+          "name": "releaseTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
           "isMut": true,
           "isSigner": true
         },
@@ -351,6 +344,16 @@
         },
         {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
           "isMut": false,
           "isSigner": false
         }
@@ -375,8 +378,8 @@
           "isSigner": false
         },
         {
-          "name": "user",
-          "isMut": true,
+          "name": "authority",
+          "isMut": false,
           "isSigner": true
         },
         {
@@ -415,8 +418,8 @@
           "isSigner": false
         },
         {
-          "name": "user",
-          "isMut": true,
+          "name": "authority",
+          "isMut": false,
           "isSigner": true
         },
         {
@@ -441,8 +444,8 @@
           "isSigner": false
         },
         {
-          "name": "user",
-          "isMut": true,
+          "name": "authority",
+          "isMut": false,
           "isSigner": true
         },
         {
@@ -467,8 +470,8 @@
           "isSigner": false
         },
         {
-          "name": "user",
-          "isMut": true,
+          "name": "authority",
+          "isMut": false,
           "isSigner": true
         },
         {
@@ -493,8 +496,8 @@
           "isSigner": false
         },
         {
-          "name": "user",
-          "isMut": true,
+          "name": "authority",
+          "isMut": false,
           "isSigner": true
         },
         {
@@ -511,7 +514,7 @@
       ]
     },
     {
-      "name": "transferNativeToken",
+      "name": "withdrawNativeToken",
       "accounts": [
         {
           "name": "idoAccount",
@@ -549,7 +552,7 @@
           "isSigner": false
         },
         {
-          "name": "payer",
+          "name": "authority",
           "isMut": true,
           "isSigner": true
         },
@@ -561,6 +564,11 @@
         {
           "name": "toAta",
           "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenMint",
+          "isMut": false,
           "isSigner": false
         },
         {
@@ -583,10 +591,6 @@
         {
           "name": "amount",
           "type": "u64"
-        },
-        {
-          "name": "idoId",
-          "type": "u32"
         }
       ]
     },
@@ -595,6 +599,11 @@
       "accounts": [
         {
           "name": "idoAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userPdaAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -610,8 +619,13 @@
         },
         {
           "name": "user",
-          "isMut": true,
+          "isMut": false,
           "isSigner": true
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
         },
         {
           "name": "systemProgram",
@@ -630,7 +644,7 @@
       "name": "claim",
       "accounts": [
         {
-          "name": "tokenAccount",
+          "name": "userTokenAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -640,14 +654,24 @@
           "isSigner": false
         },
         {
-          "name": "tokenMint",
-          "isMut": false,
+          "name": "idoTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userPdaAccount",
+          "isMut": true,
           "isSigner": false
         },
         {
           "name": "user",
           "isMut": true,
           "isSigner": true
+        },
+        {
+          "name": "tokenMint",
+          "isMut": false,
+          "isSigner": false
         },
         {
           "name": "systemProgram",
@@ -669,41 +693,6 @@
         {
           "name": "index",
           "type": "u16"
-        },
-        {
-          "name": "claimant",
-          "type": "publicKey"
-        }
-      ]
-    },
-    {
-      "name": "transferSplToken",
-      "accounts": [
-        {
-          "name": "from",
-          "isMut": false,
-          "isSigner": true
-        },
-        {
-          "name": "fromAta",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "toAta",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "tokenProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "amount",
-          "type": "u64"
         }
       ]
     }
@@ -715,8 +704,8 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "raiseToken",
-            "type": "publicKey"
+            "name": "idoId",
+            "type": "u32"
           },
           {
             "name": "rate",
@@ -751,6 +740,22 @@
             "type": "publicKey"
           },
           {
+            "name": "raiseToken",
+            "type": "publicKey"
+          },
+          {
+            "name": "releaseTokenDecimals",
+            "type": "u8"
+          },
+          {
+            "name": "raiseTokenDecimals",
+            "type": "u8"
+          },
+          {
+            "name": "authority",
+            "type": "publicKey"
+          },
+          {
             "name": "tiers",
             "type": {
               "vec": {
@@ -773,26 +778,38 @@
                 "defined": "ReleaseItem"
               }
             }
-          },
+          }
+        ]
+      }
+    },
+    {
+      "name": "PdaUserStats",
+      "type": {
+        "kind": "struct",
+        "fields": [
           {
-            "name": "raiseAssociatedToken",
+            "name": "address",
             "type": "publicKey"
           },
           {
-            "name": "releaseTokenDecimals",
+            "name": "tierIndex",
             "type": "u8"
           },
           {
-            "name": "raiseTokenDecimals",
-            "type": "u8"
+            "name": "allocated",
+            "type": "bool"
+          },
+          {
+            "name": "participateAmount",
+            "type": "u64"
+          },
+          {
+            "name": "claimAmount",
+            "type": "u64"
           },
           {
             "name": "owner",
             "type": "publicKey"
-          },
-          {
-            "name": "idoId",
-            "type": "u32"
           }
         ]
       }
@@ -822,14 +839,6 @@
             "name": "tierAllocations",
             "type": {
               "vec": "u64"
-            }
-          },
-          {
-            "name": "participated",
-            "type": {
-              "vec": {
-                "defined": "Participated"
-              }
             }
           }
         ]
@@ -867,30 +876,6 @@
           {
             "name": "percent",
             "type": "u16"
-          },
-          {
-            "name": "claimed",
-            "type": {
-              "vec": {
-                "defined": "ClaimedAmount"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "ClaimedAmount",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "address",
-            "type": "publicKey"
-          },
-          {
-            "name": "amount",
-            "type": "u64"
           }
         ]
       }
@@ -903,30 +888,6 @@
           {
             "name": "name",
             "type": "string"
-          },
-          {
-            "name": "allocated",
-            "type": {
-              "vec": {
-                "defined": "AllocateTier"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "AllocateTier",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "address",
-            "type": "publicKey"
-          },
-          {
-            "name": "allocated",
-            "type": "bool"
           }
         ]
       }
@@ -960,7 +921,7 @@
         },
         {
           "name": "address",
-          "type": "publicKey",
+          "type": "string",
           "index": false
         }
       ]
@@ -975,7 +936,7 @@
         },
         {
           "name": "address",
-          "type": "publicKey",
+          "type": "string",
           "index": false
         },
         {
@@ -1025,7 +986,7 @@
     {
       "code": 6007,
       "name": "InvalidReleaseToken",
-      "msg": "Invalid release token"
+      "msg": "Release token not yet defined"
     },
     {
       "code": 6008,

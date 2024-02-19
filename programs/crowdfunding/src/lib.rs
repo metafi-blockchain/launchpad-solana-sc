@@ -96,10 +96,7 @@ pub mod crowdfunding {
         let ido_account = &mut ctx.accounts.ido_account;
 
         //check owner
-        require!(
-            ido_account._is_admin(&ctx.accounts.authority.key),
-            IDOProgramErrors::NotAuthorized
-        );
+        require!( ido_account._is_admin(&ctx.accounts.authority.key),IDOProgramErrors::NotAuthorized);
 
         match ido_account._rounds.get_mut(index as usize) {
             Some(r) => {

@@ -1,7 +1,7 @@
 import { Container, Row, Col } from "react-bootstrap"
 import { Link } from "react-router-dom"
 
-const NotFound = () => {
+const Error404 = () => {
     return <div className="hb-not-found py-6">
         <Container>
             <Row className="justify-content-center">
@@ -17,4 +17,4 @@ const NotFound = () => {
         </Container>
     </div>
 }
-export default NotFound
+export default Error404

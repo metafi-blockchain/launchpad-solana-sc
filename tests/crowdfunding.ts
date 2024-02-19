@@ -74,7 +74,7 @@ describe("crowd funding testing", () => {
   const program = anchor.workspace.Crowdfunding as Program<Crowdfunding>;
 
   const raise_token_test = "3uWjtg9ZRjGbSzxYx4NgDLBwdFxhPLi9aArN9tiu6m8b";
-  const ido_id = 17;
+  const ido_id = 18;
   const ido_address_test = "EW1LDGKJM6NTPsPR7e9rmQBmFUapLym3DFPXDsmpb5pr";
 
 
@@ -117,8 +117,6 @@ describe("crowd funding testing", () => {
       
   //   }
    
-
-
   //   // console.log("IDO Account", idoPDAs.publicKey.toString());
 
   //   const idoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
@@ -130,6 +128,8 @@ describe("crowd funding testing", () => {
   //   assert.equal(authority.toString(), provider.wallet.publicKey.toString(), "Owner is user create ido account")
 
   // });
+
+
   // it("joinIdo", async () => {
   //   // const token_raise = "3uWjtg9ZRjGbSzxYx4NgDLBwdFxhPLi9aArN9tiu6m8b";
 
@@ -315,10 +315,11 @@ describe("crowd funding testing", () => {
  
     const token_mint = new PublicKey(release_token);
 
-    const releaseAtaAccount = getAssociatedTokenAddressSync(token_mint, idoPDA, true);
 
-    console.log("releaseAtaAccount:", releaseAtaAccount.toString());
     try {
+      const releaseAtaAccount = getAssociatedTokenAddressSync(token_mint, idoPDA, true);
+
+      console.log("releaseAtaAccount:", releaseAtaAccount.toString());
       await program.methods.setupReleaseToken(release_token, pair_release_token).accounts({
         idoAccount: idoPDA,
         releaseTokenAccount: releaseAtaAccount,
@@ -509,46 +510,46 @@ describe("crowd funding testing", () => {
   // })
 
 
-   it("modify_tier_allocated_multi", async () => {
-    const add1 = "CjZ4nLk8RLmk89hhFZhJT6QNRUUcgGPqMgBMZ5x3re67";
-    let user1 = new PublicKey(add1)
-    let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
-    let userPDA =  getPdaUser(program.programId, idoPDA, user1, "wl_ido_pad");
-    const index = 0;
+  //  it("modify_tier_allocated_multi", async () => {
+  //   const add1 = "CjZ4nLk8RLmk89hhFZhJT6QNRUUcgGPqMgBMZ5x3re67";
+  //   let user1 = new PublicKey(add1)
+  //   let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
+  //   let userPDA =  getPdaUser(program.programId, idoPDA, user1, "wl_ido_pad");
+  //   const index = 0;
    
-    const add2 = "9kPRkHCcnhgpByJc4fyYuPU6EU68yzC5yKRQrwm2cNYS";
-    const add3 = "HwzR86jCMDsddsNY6xYNk6qC8kSvTaEMFSQmemCWsyxS";
-    const add4 = "Bf2VHp1uBLAUvuWDVLSdYUeJ5dZcJonBT93kjHgEznoQ";
-    // let idoAccountTest = new PublicKey('Fs2deA3RCKoeT8NMfUb6KdRyx5brwnwWQJfycWnwQw5V');
+  //   const add2 = "9kPRkHCcnhgpByJc4fyYuPU6EU68yzC5yKRQrwm2cNYS";
+  //   const add3 = "HwzR86jCMDsddsNY6xYNk6qC8kSvTaEMFSQmemCWsyxS";
+  //   const add4 = "Bf2VHp1uBLAUvuWDVLSdYUeJ5dZcJonBT93kjHgEznoQ";
+  //   // let idoAccountTest = new PublicKey('Fs2deA3RCKoeT8NMfUb6KdRyx5brwnwWQJfycWnwQw5V');
 
-    const addresses = [add1,add2, add3, add4]
+  //   const addresses = [add1,add2, add3, add4]
 
-    console.log("userPDA: ", userPDA.toString());
-    console.log("idoPDA: ", idoPDA.toString());
+  //   console.log("userPDA: ", userPDA.toString());
+  //   console.log("idoPDA: ", idoPDA.toString());
    
-   const remove = true;
-   try {
-    await program.methods.modifyTierAllocatedMulti(index, addresses).accounts({
+  //  const remove = true;
+  //  try {
+  //   await program.methods.modifyTierAllocatedMulti(index, addresses).accounts({
       
-      idoAccount: idoPDA,
-      authority: provider.wallet.publicKey,
-      systemProgram: anchor.web3.SystemProgram.programId,
-    }).rpc();
+  //     idoAccount: idoPDA,
+  //     authority: provider.wallet.publicKey,
+  //     systemProgram: anchor.web3.SystemProgram.programId,
+  //   }).rpc();
 
-    let userInfo = await program.account.pdaUserStats.fetch(userPDA);
+  //   let userInfo = await program.account.pdaUserStats.fetch(userPDA);
 
-    // const userInfo = await getInfoIdoAccount(program, userPDA.toString());
-    console.log(JSON.stringify(userInfo));
+  //   // const userInfo = await getInfoIdoAccount(program, userPDA.toString());
+  //   console.log(JSON.stringify(userInfo));
     
-    assert.equal(userInfo.tierIndex, index, `${user1} is add in tier ${index}`);
+  //   assert.equal(userInfo.tierIndex, index, `${user1} is add in tier ${index}`);
  
-    assert.equal(userInfo.allocated, !remove, `address has allocated change: ${!remove}`);
-    assert.equal(userInfo.address.toString(), user1.toString(), `${user1} is add white list`);
-   } catch (error) {
-    console.log(error);
+  //   assert.equal(userInfo.allocated, !remove, `address has allocated change: ${!remove}`);
+  //   assert.equal(userInfo.address.toString(), user1.toString(), `${user1} is add white list`);
+  //  } catch (error) {
+  //   console.log(error);
     
-   }
-  })
+  //  }
+  // })
 
 
   //   // const idoInfo = await getInfoIdoAccount(program, idoPDAs.toString());

@@ -14,6 +14,8 @@ declare_id!("6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq");
 #[program]
 pub mod crowdfunding {
 
+    // use anchor_spl::token;
+
     use anchor_lang::{ solana_program::{native_token::LAMPORTS_PER_SOL, program::invoke_signed, system_instruction::{self, create_account}}};
 
     use super::*;
@@ -62,6 +64,7 @@ pub mod crowdfunding {
         );
 
         ido_account.modify_rounds(
+            ctx.accounts.authority.key,
             &name_list,
             &duration_list,
             &class_list,
@@ -79,6 +82,7 @@ pub mod crowdfunding {
     ) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
         ido_account.modify_round(
+            ctx.accounts.authority.key,
             &index,
             &name,
             &duration_seconds,
@@ -247,6 +251,7 @@ pub mod crowdfunding {
         );
 
         ido_account.set_releases(
+            ctx.accounts.authority.key,
             &from_timestamps,
             &to_timestamps,
             &percents,
@@ -257,24 +262,24 @@ pub mod crowdfunding {
 
     pub fn set_closed(ctx: Context<AdminModifier>, close: bool) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
-        ido_account.set_closed( &close)?;
+        ido_account.set_closed(ctx.accounts.authority.key, &close)?;
         Ok(())
     }
 
     pub fn set_cap(ctx: Context<AdminModifier>, cap: u64) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
-        ido_account.set_cap(&cap)?;
+        ido_account.set_cap(ctx.accounts.authority.key, &cap)?;
         Ok(())
     }
 
     pub fn set_rate(ctx: Context<AdminModifier>, rate: u16) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
-        ido_account.set_rate( &rate)?;
+        ido_account.set_rate(ctx.accounts.authority.key, &rate)?;
         Ok(())
     }
     pub fn set_open_timestamp(ctx: Context<AdminModifier>, open_timestamp: u32) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
-        ido_account.set_open_timestamp( &open_timestamp)?;
+        ido_account.set_open_timestamp(ctx.accounts.authority.key, &open_timestamp)?;
         Ok(())
     }
     //transferNativeToken
@@ -345,7 +350,7 @@ pub mod crowdfunding {
         Ok(())
     }
 
-    //user join IDO
+    //user join IDO: test
     pub fn participate(ctx: Context<Participate>, amount: u64) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
         let user_pda = &mut ctx.accounts.user_pda_account;
@@ -358,7 +363,7 @@ pub mod crowdfunding {
 
         require!( round_state == 1 || round_state == 3, IDOProgramErrors::ParticipationNotValid);
 
-        let allocation_remaining = get_allocation_remaining(ido_account, user_pda, &round);
+        let allocation_remaining = get_allocation_remaining(ido_account, &round, user_pda);
 
         //check allocation remaining
         require!( allocation_remaining >= amount, IDOProgramErrors::AmountExceedsRemainingAllocation);
@@ -388,7 +393,7 @@ pub mod crowdfunding {
             let token_program = &ctx.accounts.token_program;
             let authority = &ctx.accounts.user;
 
-            // Transfer tokens from uer to pda
+            // Transfer tokens from taker to initializer
             let cpi_accounts = anchor_spl::token::Transfer {
                 from: source.to_account_info().clone(),
                 to: destination.to_account_info().clone(),
@@ -417,12 +422,137 @@ pub mod crowdfunding {
         Ok(())
     }
 
-    pub fn claim(ctx: Context<ClaimToken>, index: u16) -> Result<()> {
-        _claim(ctx, index)?;
+    //user claim token  : doing
+    pub fn claim(ctx: Context<ClaimToken>, index: u16, _: Pubkey) -> Result<()> {
+        // let ido_account = &mut ctx.accounts.ido_account;
+
+        //transfer spl token from ido to user
+
+        // ido_account._claim(&index, &claimant)?;
+
+        //doing
+        let amount = 1 * LAMPORTS_PER_SOL;
+
+        require!(index > 0, IDOProgramErrors::InvalidReleaseIndex);
+
+        let destination = &ctx.accounts.user_token_account;
+        let source = &ctx.accounts.ido_token_account;
+        let token_program = &ctx.accounts.token_program;
+        let ido_account = &ctx.accounts.ido_account;
+
+        // Transfer tokens from taker to initializer
+        let transfer_instruction = anchor_spl::token::Transfer {
+            from: source.to_account_info(),
+            to: destination.to_account_info(),
+            authority: ido_account.to_account_info(),
+        };
+
+        let admin = &ctx.accounts.ido_account.authority.key();
+        let _ido_id = &ctx.accounts.ido_account.ido_id;
+
+        // let seeds: &[&[&[u8]]] = &[&[b"sol_ido_pad", admin.as_ref(), &_ido_id.to_le_bytes(), &[ctx.bumps.ido_account]]];
+
+        let seeds: &[&[u8]] = &[
+            b"sol_ido_pad",
+            admin.as_ref(),
+            &_ido_id.to_le_bytes(),
+            &[ctx.bumps.ido_account],
+        ];
+        let signer = &[&seeds[..]];
+
+        let cpi_ctx = CpiContext::new(token_program.to_account_info(), transfer_instruction)
+            .with_signer(signer);
+        anchor_spl::token::transfer(cpi_ctx, amount)?;
+
+        msg!("claim success ");
         Ok(())
     }
-  
 
+    pub fn user_claim(ctx: Context<ClaimToken>,  index: u16) -> Result<()> {
+        let native_token_pub = Pubkey::from_str(NATIVE_MINT).unwrap();
+        let ido_account = &ctx.accounts.ido_account;
+        let user_pda = & ctx.accounts.user_pda_account;
+        let release_token_account = &ctx.accounts.ido_token_account;
+    
+        if ido_account._release_token == native_token_pub {
+            return err!(IDOProgramErrors::InvalidReleaseToken);
+        }
+    
+        if index == 0 {
+            return err!(IDOProgramErrors::InvalidReleaseIndex);
+        }
+        for i in 0..index {
+            let (_, _, _, _, _, _, remaining, status) = _get_allocation(ido_account, user_pda, release_token_account, i as usize);
+    
+            if status != 1 {
+                continue;
+            }
+            //transfer release token from pda to user
+    
+            let destination = &ctx.accounts.user_token_account;
+            let source = &ctx.accounts.ido_token_account;
+            let token_program = &ctx.accounts.token_program;
+            let ido_account = &ctx.accounts.ido_account;
+    
+            // Transfer tokens from taker to initializer
+            let transfer_instruction = anchor_spl::token::Transfer {
+                from: source.to_account_info(),
+                to: destination.to_account_info(),
+                authority: ido_account.to_account_info(),
+            };
+            let admin = &ctx.accounts.ido_account.authority.key();
+            let _ido_id = &ctx.accounts.ido_account.ido_id;
+    
+            let seeds: &[&[u8]] = &[
+                b"sol_ido_pad",
+                admin.as_ref(),
+                &_ido_id.to_le_bytes(),
+                &[ctx.bumps.ido_account],
+            ];
+            let signer = &[&seeds[..]];
+    
+            let cpi_ctx = CpiContext::new(token_program.to_account_info(), transfer_instruction)
+                .with_signer(signer);
+            anchor_spl::token::transfer(cpi_ctx, remaining)?;
+       
+        }
+        msg!("claim success ");
+        //emit ClaimEvent
+        emit!(ClaimEvent {
+            index: index,
+            address: user_pda.address.to_string(),
+            remaining: 0
+        });
+        Ok(())
+    }
+    
+
+    //function test
+    pub fn transfer_spl_token(ctx: Context<TransferSplToken>, amount: u64) -> Result<()> {
+        if !ctx.accounts.payer.is_signer {
+            return Err(ProgramError::MissingRequiredSignature.into());
+        }
+
+        let _amount = &ctx.accounts.from_ata.amount;
+        require!(amount >= amount, IDOProgramErrors::InsufficientAmount);
+
+        let destination = &ctx.accounts.to_ata;
+        let source = &ctx.accounts.from_ata;
+        let token_program = &ctx.accounts.token_program;
+        let authority = &ctx.accounts.payer;
+
+        // Transfer tokens from taker to initializer
+        let cpi_accounts = anchor_spl::token::Transfer {
+            from: source.to_account_info(),
+            to: destination.to_account_info(),
+            authority: authority.to_account_info(),
+        };
+        let cpi_program = token_program.to_account_info();
+
+        anchor_spl::token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount)?;
+        msg!("Transfer succeeded!");
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -450,7 +580,7 @@ pub struct InitializeIdoAccount<'info> {
 
 #[account]
 pub struct IdoAccount {
-    pub ido_id: u32,
+    pub _raise_token: Pubkey,
     pub _rate: u16,
     pub _open_timestamp: u32,
     pub _cap: u64,
@@ -459,10 +589,10 @@ pub struct IdoAccount {
     pub _closed: bool,
     pub _release_token: Pubkey,
     pub _release_token_pair: Pubkey,
-    pub _raise_token: Pubkey,
     _release_token_decimals: u8,
     _raise_token_decimals: u8,
-    pub authority: Pubkey,
+    authority: Pubkey,
+    pub ido_id: u32,
     pub _tiers: Vec<TierItem>,
     pub _rounds: Vec<RoundItem>,
     pub _releases: Vec<ReleaseItem>,
@@ -488,17 +618,61 @@ trait IdoStrait {
     //admin function
     fn add_tier(&mut self, tier: TierItem);
     fn add_round(&mut self, round: RoundItem);
-    fn set_closed(&mut self, close: &bool) -> Result<()>;
-    fn set_cap(&mut self, cap: &u64) -> Result<()>;
-    fn set_releases( &mut self, from_timestamps: &Vec<u32>, to_timestamps: &Vec<u32>, percents: &Vec<u16>,) -> Result<()>;
-    fn set_release_token( &mut self, token: &Pubkey, pair: &Pubkey, token_decimals: &u8,) -> Result<()>;
-    fn modify_round( &mut self, index: &i32, name: &String, duration_seconds: &u32, class: &RoundClass,) -> Result<()>;
-    fn modify_rounds(&mut self, name_list: &Vec<String>, duration_list: &Vec<u32>, class_list: &Vec<RoundClass>, ) -> Result<()>;
-    fn set_rate(&mut self, rate: &u16) -> Result<()>;
-    fn set_open_timestamp(&mut self, open_timestamps: &u32) -> Result<()>;
+    fn set_closed(&mut self, user: &Pubkey, close: &bool) -> Result<()>;
+    fn set_cap(&mut self, user: &Pubkey, cap: &u64) -> Result<()>;
+
+    fn set_releases(
+        &mut self,
+        user: &Pubkey,
+        from_timestamps: &Vec<u32>,
+        to_timestamps: &Vec<u32>,
+        percents: &Vec<u16>,
+    ) -> Result<()>;
+
+    fn set_release_token(
+        &mut self,
+        token: &Pubkey,
+        pair: &Pubkey,
+        token_decimals: &u8,
+    ) -> Result<()>;
+
+    fn modify_round(
+        &mut self,
+        user: &Pubkey,
+        index: &i32,
+        name: &String,
+        duration_seconds: &u32,
+        class: &RoundClass,
+    ) -> Result<()>;
+
+    //check lai logic
+    fn modify_rounds(
+        &mut self,
+        user: &Pubkey,
+        name_list: &Vec<String>,
+        duration_list: &Vec<u32>,
+        class_list: &Vec<RoundClass>,
+    ) -> Result<()>;
+
+
+
+    fn set_rate(&mut self, user: &Pubkey, rate: &u16) -> Result<()>;
+
+    fn set_open_timestamp(&mut self, user: &Pubkey, open_timestamps: &u32) -> Result<()>;
+
+    // fn transfer_token( token: &Pubkey, from:&Pubkey,   to: &Pubkey,  amount: u64);
+    // fn transfer_native_token( from:&Pubkey,   to: &Pubkey,  amount: u64);
+
+
     fn _is_admin(&self, user: &Pubkey) -> bool;
+
+
+   
+
     fn close_timestamp(&self) -> u32;
+
     fn fcfs_timestamp(&self) -> u32;
+
     fn _is_close(&self) -> bool;
 
     // fn get_participated_total(&self, wallet: &Pubkey) -> u64;
@@ -588,17 +762,27 @@ impl IdoStrait for IdoAccount {
         self._rounds.push(round);
     }
 
-    fn set_closed(&mut self, close: &bool) -> Result<()> {
+    fn set_closed(&mut self, user: &Pubkey, close: &bool) -> Result<()> {
+        require!(self._is_admin(user), IDOProgramErrors::NotAuthorized);
         self._closed = *close;
         Ok(())
     }
 
-    fn set_cap(&mut self, cap: &u64) -> Result<()> {
+    fn set_cap(&mut self, user: &Pubkey, cap: &u64) -> Result<()> {
+        require!(self._is_admin(user), IDOProgramErrors::NotAuthorized);
+
         self._cap = *cap;
         Ok(())
     }
 
-    fn set_releases( &mut self, from_timestamps: &Vec<u32>, to_timestamps: &Vec<u32>, percents: &Vec<u16>,) -> Result<()> {
+    fn set_releases(
+        &mut self,
+        user: &Pubkey,
+        from_timestamps: &Vec<u32>,
+        to_timestamps: &Vec<u32>,
+        percents: &Vec<u16>,
+    ) -> Result<()> {
+        require!(self._is_admin(user), IDOProgramErrors::NotAuthorized);
 
         self._releases = vec![];
         //get info Ido from account address
@@ -618,19 +802,27 @@ impl IdoStrait for IdoAccount {
         pair: &Pubkey,
         token_decimals: &u8,
     ) -> Result<()> {
+        // require!(self._is_admin(user), IDOProgramErrors::NotAuthorized);
+
         self._release_token = *token;
         self._release_token_pair = *pair;
+
+        //doing
         self._release_token_decimals = *token_decimals; //hardcode
+
         Ok(())
     }
 
     fn modify_round(
         &mut self,
+        user: &Pubkey,
         index: &i32,
         name: &String,
         duration_seconds: &u32,
         class: &RoundClass,
     ) -> Result<()> {
+        require!(self._is_admin(user), IDOProgramErrors::NotAuthorized);
+
         match self._rounds.get_mut(*index as usize) {
             Some(r) => {
                 r.name = name.clone();
@@ -646,11 +838,15 @@ impl IdoStrait for IdoAccount {
 
     fn modify_rounds(
         &mut self,
+        user: &Pubkey,
         name_list: &Vec<String>,
         duration_list: &Vec<u32>,
         class_list: &Vec<RoundClass>,
     ) -> Result<()> {
+        require!(self._is_admin(user), IDOProgramErrors::NotAuthorized);
+
         self._rounds = vec![];
+
         //push round into ido_account._rounds
         for (i, name) in name_list.iter().enumerate() {
             self.add_round(RoundItem {
@@ -665,12 +861,16 @@ impl IdoStrait for IdoAccount {
 
    
 
-    fn set_rate(&mut self, rate: &u16) -> Result<()> {
+    fn set_rate(&mut self, user: &Pubkey, rate: &u16) -> Result<()> {
+        require!(self._is_admin(user), IDOProgramErrors::NotAuthorized);
+
         self._rate = *rate;
         Ok(())
     }
 
-    fn set_open_timestamp(&mut self, open_timestamps: &u32) -> Result<()> {
+    fn set_open_timestamp(&mut self, user: &Pubkey, open_timestamps: &u32) -> Result<()> {
+        require!(self._is_admin(user), IDOProgramErrors::NotAuthorized);
+
         self._open_timestamp = open_timestamps.clone();
         Ok(())
     }
@@ -679,6 +879,10 @@ impl IdoStrait for IdoAccount {
     fn _is_admin(&self, user: &Pubkey) -> bool {
         self.authority == *user
     }
+
+    
+
+   
 
     fn close_timestamp(&self) -> u32 {
         let mut ts = self._open_timestamp;
@@ -737,8 +941,8 @@ pub struct RoundItem {
     pub tier_allocations: Vec<u64>,
    
 }
-
 impl RoundItem {
+ 
     pub fn get_tier_allocation(&self, index: u8) -> u64 {
         let tier_allocations = self.tier_allocations.clone();
         match tier_allocations.get(index as usize) {
@@ -788,9 +992,7 @@ pub struct TierItem {
 
 #[derive(Accounts)]
 pub struct SetupReleaseToken<'info> {
-    #[account(mut,
-        has_one = authority, constraint = ido_account.authority == authority.key(),
-        seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+    #[account(mut,  constraint = ido_account.authority == authority.key())]
     pub ido_account: Account<'info, IdoAccount>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
     pub release_token_account: Account<'info, TokenAccount>,
@@ -849,9 +1051,7 @@ pub struct ClaimToken<'info> {
 
 #[derive(Accounts)]
 pub struct AdminModifier<'info> {
-    #[account(mut,
-        has_one = authority, constraint = ido_account.authority == authority.key(),
-        seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+    #[account(mut, constraint = ido_account.authority == authority.key())]
     pub ido_account: Account<'info, IdoAccount>,
 
     #[account(signer)]
@@ -1068,15 +1268,15 @@ fn _info_wallet( ido_account:&mut IdoAccount,  user_pda: &mut PdaUserStats) -> (
     );
 }
 
-fn get_allocation_remaining(ido_account:&mut IdoAccount, user_pda: &PdaUserStats ,round: &u16 ) -> u64 {
+fn get_allocation_remaining(ido_account:&mut IdoAccount, round: &u16, user_pda: &PdaUserStats) -> u64 {
 
     let tier =  user_pda.clone().tier_index;
-    if *round == 0 || tier == 0  || !user_pda.allocated {
+    if *round == 0 || tier == 0  || !user_pda.allocated{
         return 0;
     }
-
     let round_index = round.safe_sub(1).unwrap_or(0) as usize;
     let _tier_index = tier.safe_sub(1).unwrap_or(0);
+    // let tiers = ido_account._tiers.clone();
     let rounds = ido_account._rounds.clone();
     
 
@@ -1092,7 +1292,7 @@ fn get_allocation_remaining(ido_account:&mut IdoAccount, user_pda: &PdaUserStats
             None => {
                 return 0;
             }
-        }  
+    }  
     }
     return 0;
 }
@@ -1140,7 +1340,7 @@ fn _get_allocation(
 
             let now_ts = Clock::get().unwrap().unix_timestamp as u32;
 
-            match (to_timestamp > from_timestamp) && (now_ts < to_timestamp)  {
+            match to_timestamp > from_timestamp && now_ts < to_timestamp {
                 true => {
                     let mut elapsed = 0;
                     if now_ts > from_timestamp {
@@ -1167,6 +1367,10 @@ fn _get_allocation(
             if ido_account._release_token == native_token_pub {
                 if from_timestamp == 0 || now_ts > from_timestamp {
                     status = 1;
+
+         
+                    // if(_releaseTokenPair != address(0) && IERC20(_releaseToken).balanceOf(_releaseTokenPair) == 0)
+                    //     status = 2;
 
                     //check balance release token account > 0
                     if release_token_account.amount == 0 {
@@ -1196,59 +1400,3 @@ fn _get_allocation(
     }
 }
 
- fn _claim(ctx: Context<ClaimToken>,  index: u16) -> Result<()> {
-    let ido_account = &ctx.accounts.ido_account;
-    let user_pda = & ctx.accounts.user_pda_account;
-    let release_token_account = &ctx.accounts.ido_token_account;
-
-    if ido_account._release_token == Pubkey::from_str("11111111111111111111111111111111").unwrap() {
-        return err!(IDOProgramErrors::InvalidReleaseToken);
-    }
-
-    if index == 0 {
-        return err!(IDOProgramErrors::InvalidReleaseIndex);
-    }
-    for i in 0..index {
-        let (_, _, _, _, _, _, remaining, status) = _get_allocation(ido_account, user_pda, release_token_account, i as usize);
-
-        if status != 1 {
-            continue;
-        }
-        //transfer release token from pda to user
-
-        let destination = &ctx.accounts.user_token_account;
-        let source = &ctx.accounts.ido_token_account;
-        let token_program = &ctx.accounts.token_program;
-        let ido_account = &ctx.accounts.ido_account;
-
-        // Transfer tokens from taker to initializer
-        let transfer_instruction = anchor_spl::token::Transfer {
-            from: source.to_account_info(),
-            to: destination.to_account_info(),
-            authority: ido_account.to_account_info(),
-        };
-        let admin = &ctx.accounts.ido_account.authority.key();
-        let _ido_id = &ctx.accounts.ido_account.ido_id;
-
-        let seeds: &[&[u8]] = &[
-            b"sol_ido_pad",
-            admin.as_ref(),
-            &_ido_id.to_le_bytes(),
-            &[ctx.bumps.ido_account],
-        ];
-        let signer = &[&seeds[..]];
-
-        let cpi_ctx = CpiContext::new(token_program.to_account_info(), transfer_instruction)
-            .with_signer(signer);
-        anchor_spl::token::transfer(cpi_ctx, remaining)?;
-   
-    }
-    msg!("claim success ");
-    //emit ClaimEvent
-    emit!(ClaimEvent {
-        index: index,
-        address: user_pda.address.to_string(),
-        remaining: 0
-    });
-    Ok(())
-}

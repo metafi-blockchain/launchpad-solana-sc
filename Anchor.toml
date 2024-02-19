@@ -7,6 +7,9 @@ skip-lint = false
 [programs.localnet]
 crowdfunding = "6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq"
 
+[programs.mainnet]
+crowdfunding = "6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq"
+
 [registry]
 url = "https://anchor.projectserum.com"
 

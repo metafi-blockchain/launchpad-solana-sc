@@ -12,3 +12,12 @@ require:
 rustc 1.75.0
 solana-cli 1.18.1
 anchor-cli 0.29.0
+
+
+run command:
+
+anchor deploy    //deploy code to blockchain
+anchor test  //run deploy and test
+anchor build --verifiable       //verify code
+
+

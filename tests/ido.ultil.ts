@@ -1,6 +1,7 @@
 import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { IdoAccount, RoundClass, RoundItem, UserStraitPda } from "./ido_type"
+import { utils } from '@coral-xyz/anchor';
 
 
 
@@ -93,7 +94,7 @@ export const idoInfo = (idoAccount:IdoAccount, currentTimestamp: number)=>{
 
   
         for(let i = 0; i < tiers.length; i++){
-            let tierAllocatedCount = tiers[i].allocationsCount;
+            let tierAllocatedCount = tiers[i].allocatedCount;
 
             totalAllocationsCount += tierAllocatedCount;
         }
@@ -191,4 +192,17 @@ export const infoAllocations = (idoAccount: IdoAccount)=>{
         }
 
     }
+}
+
+export const getPdaUser = (programId: PublicKey, idoPDA: PublicKey, ido_id:number, user: PublicKey) =>{
+    const idoIdBuff = Buffer.alloc(4);
+    idoIdBuff.writeUInt32LE(ido_id, 0)
+    const [idoPDAs, _] = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode("wl_ido_pad"),
+        user.toBuffer(),
+        idoPDA.toBuffer(),
+      ],
+      programId);
+    return idoPDAs;
 }

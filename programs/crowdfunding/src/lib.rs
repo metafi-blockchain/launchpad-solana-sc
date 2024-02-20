@@ -51,20 +51,17 @@ pub mod crowdfunding {
         ctx: Context<AdminModifier>,
         name_list: Vec<String>,
         duration_list: Vec<u32>,
-        class_list: Vec<RoundClass>,
+        class_list: Vec<RoundClass>
     ) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
 
         require!(name_list.len() > 0, IDOProgramErrors::InvalidRounds);
-        require!(
-            name_list.len() == duration_list.len(),
-            IDOProgramErrors::InvalidRounds
-        );
+        require!(  name_list.len() == duration_list.len(), IDOProgramErrors::InvalidRounds);
 
         ido_account.modify_rounds(
             &name_list,
             &duration_list,
-            &class_list,
+            &class_list
         )?;
 
         Ok(())
@@ -365,10 +362,12 @@ pub mod crowdfunding {
         require!(amount > 0, IDOProgramErrors::InvalidAmount);
 
         let (_, round, round_state, _, _) = _info_wallet(ido_account, user_pda);
+        msg!("round_state: {}", round_state);
 
         require!( round_state == 1 || round_state == 3, IDOProgramErrors::ParticipationNotValid);
 
         let allocation_remaining = get_allocation_remaining(ido_account, user_pda, &round);
+        msg!("allocation_remaining {}", allocation_remaining);
 
         //check allocation remaining
         require!( allocation_remaining >= amount, IDOProgramErrors::AmountExceedsRemainingAllocation);
@@ -418,17 +417,74 @@ pub mod crowdfunding {
 
         //update participated of contract
         ido_account._participated = ido_account._participated.safe_add(amount)?;
+
         if user_pda.participate_amount == 0 {
+           
             ido_account._participated_count  = ido_account._participated_count.add(1);
         }
-      
-        user_pda.user_update_participate(&amount)?;
+
+        user_pda.user_update_participate(amount)?;
 
         Ok(())
     }
 
     pub fn claim(ctx: Context<ClaimToken>, index: u16) -> Result<()> {
-        _claim(ctx, index)?;
+        let ido_account = &ctx.accounts.ido_account;
+        let user_pda = &mut ctx.accounts.user_pda_account;
+        let release_token_account = &ctx.accounts.ido_token_account;
+    
+        if ido_account._release_token == Pubkey::from_str("11111111111111111111111111111111").unwrap() {
+            return err!(IDOProgramErrors::InvalidReleaseToken);
+        }
+    
+        if index == 0 {
+            return err!(IDOProgramErrors::InvalidReleaseIndex);
+        }
+        for i in 0..index {
+            let (_, _, _, _, _, _, remaining, status) = _get_allocation(&ido_account, &user_pda, release_token_account, i as usize);
+            
+            msg!("remaining {}", remaining);
+
+            if status != 1 {
+                continue;
+            }
+            //transfer release token from pda to user
+    
+            let destination = &ctx.accounts.user_token_account;
+            let source = &ctx.accounts.ido_token_account;
+            let token_program = &ctx.accounts.token_program;
+            let ido_account = &ctx.accounts.ido_account;
+    
+            // Transfer tokens from taker to initializer
+            let transfer_instruction = anchor_spl::token::Transfer {
+                from: source.to_account_info(),
+                to: destination.to_account_info(),
+                authority: ido_account.to_account_info(),
+            };
+            let admin = &ctx.accounts.ido_account.authority.key();
+            let _ido_id = &ctx.accounts.ido_account.ido_id;
+    
+            let seeds: &[&[u8]] = &[
+                b"sol_ido_pad",
+                admin.as_ref(),
+                &_ido_id.to_le_bytes(),
+                &[ctx.bumps.ido_account],
+            ];
+            let signer = &[&seeds[..]];
+    
+            let cpi_ctx = CpiContext::new(token_program.to_account_info(), transfer_instruction)
+                .with_signer(signer);
+            anchor_spl::token::transfer(cpi_ctx, remaining)?;
+        
+            user_pda.user_update_claim(remaining)?;
+            msg!("claim success ");
+            //emit ClaimEvent
+            emit!(ClaimEvent {
+                index: index,
+                address: user_pda.address.to_string(),
+                claim: remaining
+            });
+        }
         Ok(())
     }
   
@@ -446,7 +502,7 @@ pub mod crowdfunding {
     release_token: String,
     _ido_id: u32)]
 pub struct InitializeIdoAccount<'info> {
-    #[account(init_if_needed,  payer = authority,  space = 900,  seeds = [b"sol_ido_pad",  authority.key().as_ref() ,  &_ido_id.to_le_bytes()], bump)]
+    #[account(init_if_needed,  payer = authority,  space = 400,  seeds = [b"sol_ido_pad",  authority.key().as_ref() ,  &_ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
     pub token_mint: Account<'info, Mint>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
@@ -698,7 +754,7 @@ impl IdoStrait for IdoAccount {
         let mut ts = self._open_timestamp;
         let rounds = self._rounds.clone();
         for (_, round) in rounds.iter().enumerate() {
-            ts = ts.add(round.duration_seconds);
+            ts = ts.safe_add(round.duration_seconds).unwrap();
         }
         ts
     }
@@ -715,7 +771,7 @@ impl IdoStrait for IdoAccount {
                     return ts;
                 }
                 _ => {
-                    ts = ts.safe_add(round.duration_seconds).unwrap();
+                    ts = ts.add(round.duration_seconds);
                 }
             }
         }
@@ -724,7 +780,7 @@ impl IdoStrait for IdoAccount {
 
     fn _is_close(&self) -> bool {
         let close_timestamp = self.close_timestamp();
-
+     
         //get block time stamp
         let now_ts = Clock::get().unwrap().unix_timestamp as u32;
         //check close time  and pr
@@ -958,8 +1014,6 @@ impl PdaUserStats{
         self.owner = *owner;
         self.tier_index = *tier_index;
         self.allocated = *allocated;
-        self.participate_amount = 0;
-        self.claim_amount = 0;
         Ok(())
 
     }
@@ -967,12 +1021,14 @@ impl PdaUserStats{
         self.tier_index = *tier_index;
         self.allocated = *allocated; 
     }
-    pub fn user_update_participate(&mut self, participate_amount:&u64)-> Result<()>{
-        self.participate_amount.safe_add(*participate_amount)?; 
+    pub fn user_update_participate(&mut self, participate_amount:u64)-> Result<()>{
+        self.participate_amount =  self.participate_amount.safe_add(participate_amount).unwrap(); 
         Ok(())
     }
-    pub fn user_update_claim(&mut self, claim_amount:&u64)-> Result<()>{
-        self.claim_amount.safe_add(*claim_amount)?; 
+    pub fn user_update_claim(&mut self, claim_amount:u64)-> Result<()>{
+       
+        let amount = self.claim_amount.safe_add(claim_amount).unwrap();
+        self.claim_amount = amount; 
         Ok(())
     }
 
@@ -992,7 +1048,7 @@ pub struct ParticipateEvent {
 pub struct ClaimEvent {
     pub index: u16,
     pub address: String,
-    pub remaining: u64,
+    pub claim: u64,
 }
 
 #[error_code]
@@ -1029,19 +1085,18 @@ impl From<IDOProgramErrors> for ProgramError {
     }
 }
 
-fn _info_wallet( ido_account:&mut IdoAccount,  user_pda: &mut PdaUserStats) -> (u8, u16, u8, String, u32) {
-        
+fn _info_wallet( ido_account:&mut IdoAccount,  user_pda: &mut PdaUserStats) -> (u8, u8, u8, String, u32) {
+    
     let mut round = 0;
     let mut round_state = 4;
     let mut round_state_text = String::from("");
     let mut round_timestamp = 0;
-    let is_close = ido_account._is_close();
+    let is_close =  ido_account._is_close();
     let tier: u8 = if user_pda.allocated  { user_pda.clone().tier_index } else { 0 };
 
     if !is_close {
         let mut ts = ido_account._open_timestamp;
         let now_ts = Clock::get().unwrap().unix_timestamp as u32;
-
         if now_ts < ts {
             round_state = 0;
             round_state_text = String::from("Allocation Round <u>opens</u> in:");
@@ -1052,7 +1107,6 @@ fn _info_wallet( ido_account:&mut IdoAccount,  user_pda: &mut PdaUserStats) -> (
             for (i, _round) in rounds.iter().enumerate() {
                 round = i.add(1);
                 ts = ts.safe_add(_round.duration_seconds).unwrap();
-
                 if now_ts < ts {
                     match _round.class {
                         RoundClass::Allocation => {
@@ -1080,22 +1134,24 @@ fn _info_wallet( ido_account:&mut IdoAccount,  user_pda: &mut PdaUserStats) -> (
 
     return (
         tier,
-        round as u16,
+        round.try_into().unwrap() ,
         round_state,
         round_state_text,
         round_timestamp,
     );
 }
 
-fn get_allocation_remaining(ido_account:&mut IdoAccount, user_pda: &PdaUserStats ,round: &u16 ) -> u64 {
+fn get_allocation_remaining(ido_account:&mut IdoAccount, user_pda: &PdaUserStats ,round: &u8 ) -> u64 {
 
-    let tier =  user_pda.clone().tier_index;
-    if *round == 0 || tier == 0  || !user_pda.allocated {
+    let tier =  user_pda.tier_index;
+    msg!("tier user {} ",tier );
+    if *round == 0 || tier == 0 {
         return 0;
     }
+   
 
-    let round_index = round.safe_sub(1).unwrap_or(0) as usize;
-    let _tier_index = tier.safe_sub(1).unwrap_or(0);
+    let round_index = round.sub(1) as usize;
+    let _tier_index = tier.sub(1);
     let rounds = ido_account._rounds.clone();
     
 
@@ -1117,7 +1173,7 @@ fn get_allocation_remaining(ido_account:&mut IdoAccount, user_pda: &PdaUserStats
 }
 
 
-fn _get_allocation(
+pub fn _get_allocation(
     ido_account: &IdoAccount,
     user_pda: &PdaUserStats,
     release_token_account: &TokenAccount, 
@@ -1183,7 +1239,7 @@ fn _get_allocation(
 
             let native_token_pub = Pubkey::from_str(NATIVE_MINT).unwrap();
             // //check _release_token is equal publich key 1nc1nerator11111111111111111111111111111111
-            if ido_account._release_token == native_token_pub {
+            if ido_account._release_token != native_token_pub {
                 if from_timestamp == 0 || now_ts > from_timestamp {
                     status = 1;
 
@@ -1213,61 +1269,4 @@ fn _get_allocation(
             return (0, 0, 0, 0, 0, 0, 0, 0);
         }
     }
-}
-
- fn _claim(ctx: Context<ClaimToken>,  index: u16) -> Result<()> {
-    let ido_account = &ctx.accounts.ido_account;
-    let user_pda = & ctx.accounts.user_pda_account;
-    let release_token_account = &ctx.accounts.ido_token_account;
-
-    if ido_account._release_token == Pubkey::from_str("11111111111111111111111111111111").unwrap() {
-        return err!(IDOProgramErrors::InvalidReleaseToken);
-    }
-
-    if index == 0 {
-        return err!(IDOProgramErrors::InvalidReleaseIndex);
-    }
-    for i in 0..index {
-        let (_, _, _, _, _, _, remaining, status) = _get_allocation(ido_account, user_pda, release_token_account, i as usize);
-
-        if status != 1 {
-            continue;
-        }
-        //transfer release token from pda to user
-
-        let destination = &ctx.accounts.user_token_account;
-        let source = &ctx.accounts.ido_token_account;
-        let token_program = &ctx.accounts.token_program;
-        let ido_account = &ctx.accounts.ido_account;
-
-        // Transfer tokens from taker to initializer
-        let transfer_instruction = anchor_spl::token::Transfer {
-            from: source.to_account_info(),
-            to: destination.to_account_info(),
-            authority: ido_account.to_account_info(),
-        };
-        let admin = &ctx.accounts.ido_account.authority.key();
-        let _ido_id = &ctx.accounts.ido_account.ido_id;
-
-        let seeds: &[&[u8]] = &[
-            b"sol_ido_pad",
-            admin.as_ref(),
-            &_ido_id.to_le_bytes(),
-            &[ctx.bumps.ido_account],
-        ];
-        let signer = &[&seeds[..]];
-
-        let cpi_ctx = CpiContext::new(token_program.to_account_info(), transfer_instruction)
-            .with_signer(signer);
-        anchor_spl::token::transfer(cpi_ctx, remaining)?;
-   
-    }
-    msg!("claim success ");
-    //emit ClaimEvent
-    emit!(ClaimEvent {
-        index: index,
-        address: user_pda.address.to_string(),
-        remaining: 0
-    });
-    Ok(())
 }

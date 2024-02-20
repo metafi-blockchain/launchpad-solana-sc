@@ -21,7 +21,7 @@ export interface IdoAccount{
 }
 export interface TierItem {
     name: String,
-    allocationsCount: number
+    allocatedCount: number
 }
 export interface ReleaseItem {
     fromTimestamp: number,

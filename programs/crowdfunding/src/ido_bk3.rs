@@ -338,7 +338,7 @@ pub mod crowdfunding {
         let _ido_id = &ctx.accounts.ido_account.ido_id;
 
         let _signer: &[&[&[u8]]] = &[&[
-            b"sol_ido_pad",
+            b"ido_pad",
             admin.as_ref(),
             &_ido_id.to_le_bytes(),
             &[ctx.bumps.ido_account],
@@ -450,10 +450,10 @@ pub mod crowdfunding {
         let admin = &ctx.accounts.ido_account.authority.key();
         let _ido_id = &ctx.accounts.ido_account.ido_id;
 
-        // let seeds: &[&[&[u8]]] = &[&[b"sol_ido_pad", admin.as_ref(), &_ido_id.to_le_bytes(), &[ctx.bumps.ido_account]]];
+        // let seeds: &[&[&[u8]]] = &[&[b"ido_pad", admin.as_ref(), &_ido_id.to_le_bytes(), &[ctx.bumps.ido_account]]];
 
         let seeds: &[&[u8]] = &[
-            b"sol_ido_pad",
+            b"ido_pad",
             admin.as_ref(),
             &_ido_id.to_le_bytes(),
             &[ctx.bumps.ido_account],
@@ -504,7 +504,7 @@ pub mod crowdfunding {
             let _ido_id = &ctx.accounts.ido_account.ido_id;
     
             let seeds: &[&[u8]] = &[
-                b"sol_ido_pad",
+                b"ido_pad",
                 admin.as_ref(),
                 &_ido_id.to_le_bytes(),
                 &[ctx.bumps.ido_account],
@@ -566,7 +566,7 @@ pub mod crowdfunding {
     release_token: String,
     _ido_id: u32)]
 pub struct InitializeIdoAccount<'info> {
-    #[account(init_if_needed,  payer = authority,  space = 300,  seeds = [b"sol_ido_pad",  authority.key().as_ref() ,  &_ido_id.to_le_bytes()], bump)]
+    #[account(init_if_needed,  payer = authority,  space = 300,  seeds = [b"ido_pad",  authority.key().as_ref() ,  &_ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
     pub token_mint: Account<'info, Mint>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
@@ -1008,7 +1008,7 @@ pub struct SetupReleaseToken<'info> {
 
 #[derive(Accounts)]
 pub struct Participate<'info> {
-    #[account(mut, seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
+    #[account(mut, seeds = [b"ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
 
     #[account(mut, seeds = [b"wl_ido_pad", user.key().as_ref(), ido_account.key().as_ref()], bump)]
@@ -1032,7 +1032,7 @@ pub struct ClaimToken<'info> {
     #[account(init_if_needed,  payer = user, associated_token::mint = token_mint, associated_token::authority = user)]
     pub user_token_account: Account<'info, TokenAccount>,
    
-    #[account(mut, seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
+    #[account(mut, seeds = [b"ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
 
     #[account(mut)]
@@ -1083,7 +1083,7 @@ pub struct TransferSplToken<'info> {
 pub struct WithdrawTokenFromPda<'info> {
     #[account(mut,
         has_one = authority, constraint = ido_account.authority == authority.key(),
-        seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+        seeds = [b"ido_pad", ido_account.authority.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -1101,7 +1101,7 @@ pub struct WithdrawTokenFromPda<'info> {
 
 #[derive(Accounts)]
 pub struct ModifyTierAllocatedMulti<'info>{
-    #[account(mut, seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
+    #[account(mut, seeds = [b"ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -1116,7 +1116,7 @@ pub struct ModifyTierAllocatedOne<'info> {
     #[account( init_if_needed, payer = authority, space = 32+32+16+16+1+1, 
         seeds = [b"wl_ido_pad", address.as_ref(), ido_account.key().as_ref()], bump)]
     pub user_ido_account: Account<'info, PdaUserStats>,
-    #[account(mut, seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
+    #[account(mut, seeds = [b"ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
     #[account(mut)]
     pub authority: Signer<'info>,

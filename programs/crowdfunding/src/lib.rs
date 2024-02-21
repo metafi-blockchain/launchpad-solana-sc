@@ -350,7 +350,7 @@ pub mod crowdfunding {
         let _ido_id = &ctx.accounts.ido_account.ido_id;
 
         let _signer: &[&[&[u8]]] = &[&[
-            b"sol_ido_pad",
+            b"ido_pad",
             admin.as_ref(),
             &_ido_id.to_le_bytes(),
             &[ctx.bumps.ido_account],
@@ -496,7 +496,7 @@ pub mod crowdfunding {
             let _ido_id = &ctx.accounts.ido_account.ido_id;
     
             let seeds: &[&[u8]] = &[
-                b"sol_ido_pad",
+                b"ido_pad",
                 admin.as_ref(),
                 &_ido_id.to_le_bytes(),
                 &[ctx.bumps.ido_account],
@@ -533,7 +533,7 @@ pub mod crowdfunding {
     release_token: String,
     _ido_id: u32)]
 pub struct InitializeIdoAccount<'info> {
-    #[account(init_if_needed,  payer = authority,  space = 9000,  seeds = [b"sol_ido_pad",  authority.key().as_ref() ,  &_ido_id.to_le_bytes()], bump)]
+    #[account(init_if_needed,  payer = authority,  space = 900,  seeds = [b"ido_pad",  authority.key().as_ref() ,  &_ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
     pub token_mint: Account<'info, Mint>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
@@ -543,6 +543,10 @@ pub struct InitializeIdoAccount<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
+}
+pub struct AdminAccount{
+    pub authority: Pubkey,
+    pub bum: u8,
 }
 
 #[account]
@@ -554,16 +558,19 @@ pub struct IdoAccount {
     pub _participated: u64,
     pub _participated_count: u32,
     pub _closed: bool,
+    pub _release_token_decimals: u8,
+    pub _raise_token_decimals: u8,
+    pub bump: u8,
     pub _release_token: Pubkey,
     pub _release_token_pair: Pubkey,
     pub _raise_token: Pubkey,
-    _release_token_decimals: u8,
-    _raise_token_decimals: u8,
     pub authority: Pubkey,
     pub _tiers: Vec<TierItem>,
     pub _rounds: Vec<RoundItem>,
     pub _releases: Vec<ReleaseItem>,
 }
+
+
 trait IdoStrait {
     //setter function
     fn create_ido(
@@ -597,6 +604,8 @@ trait IdoStrait {
     fn close_timestamp(&self) -> u32;
     fn fcfs_timestamp(&self) -> u32;
     fn _is_close(&self) -> bool;
+    fn bump(&self) -> u8 ;
+    fn set_admin(&mut self,  admin: &Pubkey)->Result<()>;
 
     // fn get_participated_total(&self, wallet: &Pubkey) -> u64;
 
@@ -776,7 +785,11 @@ impl IdoStrait for IdoAccount {
         Ok(())
     }
 
-    
+    fn set_admin(&mut self,  admin: &Pubkey)->Result<()>{
+        self.authority = *admin; 
+        Ok(())
+    }
+
     fn _is_admin(&self, user: &Pubkey) -> bool {
         self.authority == *user
     }
@@ -821,6 +834,10 @@ impl IdoStrait for IdoAccount {
 
         return false;
     }
+    fn bump(&self) -> u8 {
+        self.bump
+    }
+
     
 }
 
@@ -896,7 +913,7 @@ pub struct TierItem {
 pub struct SetupReleaseToken<'info> {
     #[account(mut,
         has_one = authority, constraint = ido_account.authority == authority.key(),
-        seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+        seeds = [b"ido_pad", ido_account.authority.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
     pub release_token_account: Account<'info, TokenAccount>,
@@ -912,7 +929,7 @@ pub struct SetupReleaseToken<'info> {
 
 #[derive(Accounts)]
 pub struct Participate<'info> {
-    #[account(mut, seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
+    #[account(mut, seeds = [b"ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
 
     #[account(mut, seeds = [b"wl_ido_pad", user.key().as_ref(), ido_account.key().as_ref()], bump)]
@@ -936,7 +953,7 @@ pub struct ClaimToken<'info> {
     #[account(init_if_needed,  payer = user, associated_token::mint = token_mint, associated_token::authority = user)]
     pub user_token_account: Account<'info, TokenAccount>,
    
-    #[account(mut, seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
+    #[account(mut, seeds = [b"ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
 
     #[account(mut)]
@@ -957,7 +974,7 @@ pub struct ClaimToken<'info> {
 pub struct AdminModifier<'info> {
     #[account(mut,
         has_one = authority, constraint = ido_account.authority == authority.key(),
-        seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+        seeds = [b"ido_pad", ido_account.authority.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
 
     #[account(signer)]
@@ -989,7 +1006,7 @@ pub struct TransferSplToken<'info> {
 pub struct WithdrawTokenFromPda<'info> {
     #[account(mut,
         has_one = authority, constraint = ido_account.authority == authority.key(),
-        seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+        seeds = [b"ido_pad", ido_account.authority.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -1007,7 +1024,7 @@ pub struct WithdrawTokenFromPda<'info> {
 
 #[derive(Accounts)]
 pub struct ModifyTierAllocatedMulti<'info>{
-    #[account(mut, seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
+    #[account(mut, seeds = [b"ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -1022,7 +1039,7 @@ pub struct ModifyTierAllocatedOne<'info> {
     #[account( init_if_needed, payer = authority, space = 32+32+16+16+1+1, 
         seeds = [b"wl_ido_pad", address.as_ref(), ido_account.key().as_ref()], bump)]
     pub user_ido_account: Account<'info, PdaUserStats>,
-    #[account(mut, seeds = [b"sol_ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
+    #[account(mut, seeds = [b"ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -1037,6 +1054,7 @@ pub struct PdaUserStats {
     pub participate_amount: u64, //16
     pub claim_amount: u64, //16
     pub owner: Pubkey,//32
+    pub bum: u8, //1
 }
 impl PdaUserStats{
     pub fn init_user_pda(&mut self, tier_index: &u8,address:&Pubkey, owner:&Pubkey, allocated: &bool) -> Result<()>  {

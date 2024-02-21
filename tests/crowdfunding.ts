@@ -83,7 +83,7 @@ describe("crowd funding testing", () => {
 
   const raise_token_test = "3uWjtg9ZRjGbSzxYx4NgDLBwdFxhPLi9aArN9tiu6m8b";
   const release_token = "Hv6634qu7ucXkaHDgcH3H5fUH1grmSNwpspYdCkSG7hK";
-  const ido_id = 25;
+  const ido_id = 1;
 
 
   // it("initialize Ido program", async () => {
@@ -97,7 +97,7 @@ describe("crowd funding testing", () => {
 
 
 
-  //   let idoPDAs =  getPdaIdo(program, ido_id,"sol_ido_pad");
+  //   let idoPDAs =  getPdaIdo(program, ido_id,"ido_pad");
 
   //   const releaseToken ="DG9UcawWuzsnRpMDaY67kDn3SHbbQQnKEW4to3UQWLJC";
 
@@ -142,7 +142,7 @@ describe("crowd funding testing", () => {
 
   
   // it("set_cap", async () => {
-  //   let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
+  //   let idoPDA =  getPdaIdo(program, ido_id,"ido_pad");
   //   const cap = new BN(10*LAMPORTS_PER_SOL);
   //   await program.methods.setCap(cap).accounts({
   //     idoAccount: idoPDA,
@@ -156,7 +156,7 @@ describe("crowd funding testing", () => {
 
   // })
   // it("set rate", async () => {
-  //   let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
+  //   let idoPDA =  getPdaIdo(program, ido_id,"ido_pad");
   //   const rate = 10000;
 
   //   await program.methods.setRate(rate).accounts({
@@ -176,7 +176,7 @@ describe("crowd funding testing", () => {
 
 
   // it("set open timestamp", async () => {
-  //   let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
+  //   let idoPDA =  getPdaIdo(program, ido_id,"ido_pad");
 
   //   const timestamp = convertTimeTimeTo("2024/02/19 15:15:00");
 
@@ -199,7 +199,7 @@ describe("crowd funding testing", () => {
 
   // it("modify_rounds", async () => {
 
-  //   let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
+  //   let idoPDA =  getPdaIdo(program, ido_id,"ido_pad");
 
   //   const nameList = ["Test round1", "Test prepare", "Test fsfs",] ;
   //   const durationSeconds = [36000, 15000, 90000];
@@ -230,7 +230,7 @@ describe("crowd funding testing", () => {
   //   const index = 1;
   //   const name = "Test round1";
   //   const durationSeconds = 60000;
-  //   let idoPDAs =  getPdaIdo(program, ido_id,"sol_ido_pad");
+  //   let idoPDAs =  getPdaIdo(program, ido_id,"ido_pad");
   //   //check lai logic cho round class
   //  const _class = { allocation: {} }
   //   await program.methods.modifyRound(index, name, durationSeconds , _class).accounts({
@@ -257,7 +257,7 @@ describe("crowd funding testing", () => {
 
   it("modify_round_allocations", async () => {
 
-    let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
+    let idoPDA =  getPdaIdo(program, ido_id,"ido_pad");
 
     const round_index = 0;
     const tierAllocations = [new BN(2 * LAMPORTS_PER_SOL), new BN(3 * LAMPORTS_PER_SOL) , new BN(4 * LAMPORTS_PER_SOL)];
@@ -287,7 +287,7 @@ describe("crowd funding testing", () => {
   it("modify_tier_allocated_one", async () => {
     const add1 = "B4Sho4nv3f7kJNo33a3cmYEKCUetCm6tgHqatkcxiaA8";
     let user1 = new PublicKey(add1)
-    let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
+    let idoPDA =  getPdaIdo(program, ido_id,"ido_pad");
     let userPDA =  getPdaUser(program.programId,  idoPDA, ido_id, user1);
     const tier = 1;
    
@@ -322,7 +322,7 @@ describe("crowd funding testing", () => {
   it("joinIdo", async () => {
     // const token_raise = "3uWjtg9ZRjGbSzxYx4NgDLBwdFxhPLi9aArN9tiu6m8b";
 
-    let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
+    let idoPDA =  getPdaIdo(program, ido_id,"ido_pad");
 
 
     const token_mint = new PublicKey(raise_token_test);
@@ -396,7 +396,7 @@ describe("crowd funding testing", () => {
 
 
   // it("modify_tiers", async () => {
-  //   let idoPDAs =  getPdaIdo(program, ido_id,"sol_ido_pad");
+  //   let idoPDAs =  getPdaIdo(program, ido_id,"ido_pad");
   //   const names = ["Tier 1", "Tier 2","Tier 3", "Tier 4", "Tier 5", "Tier 6"]
   //   await program.methods.modifyTiers(names).accounts({
   //     idoAccount: idoPDAs,
@@ -416,7 +416,7 @@ describe("crowd funding testing", () => {
   //   const index = 0;
   //   const name = "Lottery Winners";
 
-  //   let idoPDAs =  getPdaIdo(program, ido_id,"sol_ido_pad");
+  //   let idoPDAs =  getPdaIdo(program, ido_id,"ido_pad");
 
   //   await program.methods.modifyTier(index, name).accounts({
   //      idoAccount: idoPDAs,
@@ -437,7 +437,7 @@ describe("crowd funding testing", () => {
 
   //   const release_token = "Hv6634qu7ucXkaHDgcH3H5fUH1grmSNwpspYdCkSG7hK";
   //   const pair_release_token = "5yAX4HZEq9X2DumUkotrmPLPuFGVuMkWphUF2EcmtyBS";
-  //   let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
+  //   let idoPDA =  getPdaIdo(program, ido_id,"ido_pad");
  
   //   const token_mint = new PublicKey(release_token);
 
@@ -473,7 +473,7 @@ describe("crowd funding testing", () => {
   // });
 
   // it("setup_releases", async () => {
-  //   let idoPDAs =  getPdaIdo(program, ido_id,"sol_ido_pad");
+  //   let idoPDAs =  getPdaIdo(program, ido_id,"ido_pad");
   //  const from_timestamps = [1705514720, 1705536720 , 1705574720]
   //  const to_timestamps = [1705734740, 1705834720, 1705934720]
   //  const percents = [40, 30, 30];
@@ -519,7 +519,7 @@ describe("crowd funding testing", () => {
    it("modify_tier_allocated_multi", async () => {
     const add1 = "CjZ4nLk8RLmk89hhFZhJT6QNRUUcgGPqMgBMZ5x3re67";
     let user1 = new PublicKey(add1)
-    let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
+    let idoPDA =  getPdaIdo(program, ido_id,"ido_pad");
     // let userPDA =  getPdaUser(program.programId, idoPDA, ido_id, user1);
     const index = 0;
    
@@ -580,7 +580,7 @@ describe("crowd funding testing", () => {
 
   // it("withdraw_token_from_pda", async () => {
 
-  //   let idoPDAs =  getPdaIdo(program, ido_id,"sol_ido_pad");
+  //   let idoPDAs =  getPdaIdo(program, ido_id,"ido_pad");
 
   //   const token_mint = new PublicKey(raise_token_test);
 
@@ -616,7 +616,7 @@ describe("crowd funding testing", () => {
   it("claim_token", async () => {
     // const token_raise = "3uWjtg9ZRjGbSzxYx4NgDLBwdFxhPLi9aArN9tiu6m8b";
 
-    let idoPDA =  getPdaIdo(program, ido_id,"sol_ido_pad");
+    let idoPDA =  getPdaIdo(program, ido_id,"ido_pad");
 
     const token_mint = new PublicKey(release_token);
 

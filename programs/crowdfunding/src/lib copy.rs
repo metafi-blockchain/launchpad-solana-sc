@@ -324,7 +324,7 @@ pub mod crowdfunding {
 
         msg!("admin is {} ", admin);
 
-        let seeds: &[&[&[u8]]] = &[&[b"sol_ido_pad", admin.as_ref(), &_ido_id.to_le_bytes(), &[ctx.bumps.ido_account]]];
+        let seeds: &[&[&[u8]]] = &[&[b"ido_pad", admin.as_ref(), &_ido_id.to_le_bytes(), &[ctx.bumps.ido_account]]];
         
         let cpi_ctx = CpiContext::new(token_program.to_account_info(), transfer_instruction).with_signer(seeds);
         anchor_spl::token::transfer(cpi_ctx, amount)?;
@@ -464,7 +464,7 @@ pub mod crowdfunding {
     release_token: String,
     _ido_id: u32)]
 pub struct InitializeIdoAccount<'info> {
-    #[account(init_if_needed, payer = user, space = 9000, seeds = [b"sol_ido_pad", user.key().as_ref() , &_ido_id.to_le_bytes()], bump)]
+    #[account(init_if_needed, payer = user, space = 9000, seeds = [b"ido_pad", user.key().as_ref() , &_ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
 
     #[account()]
@@ -1418,7 +1418,7 @@ pub struct TransferSplToken<'info> {
     amount: u64,
     _ido_id: u32)]
 pub struct WithdrawTokenFromPda<'info> {
-    #[account(mut, seeds = [b"sol_ido_pad", ido_account._owner.key().as_ref() , &_ido_id.to_le_bytes()], bump)]
+    #[account(mut, seeds = [b"ido_pad", ido_account._owner.key().as_ref() , &_ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
     #[account(mut)]
     pub payer: Signer<'info>,

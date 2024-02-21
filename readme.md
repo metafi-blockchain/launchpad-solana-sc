@@ -21,3 +21,4 @@ anchor test  //run deploy and test
 anchor build --verifiable       //verify code
 
 
+check log: ❯ solana confirm -v 32EXWwSFerpucapNyEC4XvsRyJY1SqfqSmUxBvLQKUFKfeatCYEeydEQun7cQvTtNS44iSKZaAFaH6UNpesNwxGk

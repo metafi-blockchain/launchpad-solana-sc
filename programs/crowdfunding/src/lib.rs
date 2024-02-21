@@ -14,7 +14,8 @@ declare_id!("6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq");
 #[program]
 pub mod crowdfunding {
 
-    use anchor_lang::{ solana_program::{native_token::LAMPORTS_PER_SOL, program::invoke_signed, system_instruction::{self, create_account}}};
+    use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
+    use anchor_spl::associated_token::get_associated_token_address;
 
     use super::*;
 
@@ -178,6 +179,7 @@ pub mod crowdfunding {
         ctx: Context<ModifyTierAllocatedMulti>,
         index: u32,
         addresses: Vec<String>,
+        _remove: bool
     ) -> Result<()> {
 
         // let ido_account = & ctx.accounts.ido_account;
@@ -323,15 +325,23 @@ pub mod crowdfunding {
         if !ctx.accounts.authority.is_signer {
             return Err(ProgramError::MissingRequiredSignature.into());
         }
+
         
         let destination: &Account<'_, TokenAccount> = &ctx.accounts.to_ata;
-        let source = &ctx.accounts.from_ata;
+        let ido_token_account = &ctx.accounts.from_ata;
         let token_program: &Program<'_, Token> = &ctx.accounts.token_program;
         let ido_account: &Account<'_, IdoAccount> = &ctx.accounts.ido_account;
 
+
+        let _admin_token_address = get_associated_token_address(&ctx.accounts.authority.key(), &ido_account._raise_token);
+        //require admin token account
+        require!(_admin_token_address == destination.key(),  IDOProgramErrors::WithdrawTokenAccountNotMatch);
+
+
+
         // Transfer tokens from taker to initializer
         let transfer_instruction = anchor_spl::token::Transfer {
-            from: source.to_account_info(),
+            from: ido_token_account.to_account_info(),
             to: destination.to_account_info(),
             authority: ido_account.to_account_info(),
         };
@@ -356,8 +366,11 @@ pub mod crowdfunding {
     pub fn participate(ctx: Context<Participate>, amount: u64) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
         let user_pda = &mut ctx.accounts.user_pda_account;
-        let user = &ctx.accounts.user;
-        // let system_program = &ctx.accounts.system_program;
+        let user: &Signer<'_> = &ctx.accounts.user;
+
+        let _ido_raise_token_account = get_associated_token_address(&ido_account.key(), &ido_account._raise_token);
+
+        require!(_ido_raise_token_account == ctx.accounts.deposit_token_account.key(),  IDOProgramErrors::DepositTokenAccountNotMatch);
 
         require!(amount > 0, IDOProgramErrors::InvalidAmount);
 
@@ -390,12 +403,16 @@ pub mod crowdfunding {
                 &[user.to_account_info(), ido_account.to_account_info()],
             )?;
         } else {
-            require!(amount >= amount, IDOProgramErrors::InsufficientAmount);
+            
+
 
             let destination = &ctx.accounts.receive_token_account;
             let source = &ctx.accounts.deposit_token_account;
             let token_program = &ctx.accounts.token_program;
             let authority = &ctx.accounts.user;
+
+            //check amount token of user
+            require!(source.amount >= amount, IDOProgramErrors::InsufficientAmount);
 
             // Transfer tokens from uer to pda
             let cpi_accounts = anchor_spl::token::Transfer {
@@ -403,9 +420,12 @@ pub mod crowdfunding {
                 to: destination.to_account_info().clone(),
                 authority: authority.to_account_info().clone(),
             };
+
             let cpi_program = token_program.to_account_info();
 
             anchor_spl::token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount)?;
+
+           
             msg!("Transfer succeeded!");
         }
 
@@ -428,11 +448,23 @@ pub mod crowdfunding {
         Ok(())
     }
 
+
+    
+
+  
+
     pub fn claim(ctx: Context<ClaimToken>, index: u16) -> Result<()> {
         let ido_account = &ctx.accounts.ido_account;
         let user_pda = &mut ctx.accounts.user_pda_account;
-        let release_token_account = &ctx.accounts.ido_token_account;
-    
+        let ido_release_token_account = &ctx.accounts.ido_token_account;
+        
+        let user_token_account = &ctx.accounts.user_token_account;
+
+        let _user_token_address = get_associated_token_address(&ctx.accounts.user.key(), &ido_account._release_token);
+
+        //check user token address
+        require!(_user_token_address == user_token_account.key(), IDOProgramErrors::ReleaseTokenAccountNotMatch);
+
         if ido_account._release_token == Pubkey::from_str("11111111111111111111111111111111").unwrap() {
             return err!(IDOProgramErrors::InvalidReleaseToken);
         }
@@ -440,11 +472,10 @@ pub mod crowdfunding {
         if index == 0 {
             return err!(IDOProgramErrors::InvalidReleaseIndex);
         }
-        for i in 0..index {
-            let (_, _, _, _, _, _, remaining, status) = _get_allocation(&ido_account, &user_pda, release_token_account, i as usize);
-            
-            msg!("remaining {}", remaining);
 
+        for i in 0..index {
+            let (_, _, _, _, _, _, remaining, status) = _get_allocation(&ido_account, &user_pda, ido_release_token_account, i as usize);
+            
             if status != 1 {
                 continue;
             }
@@ -502,7 +533,7 @@ pub mod crowdfunding {
     release_token: String,
     _ido_id: u32)]
 pub struct InitializeIdoAccount<'info> {
-    #[account(init_if_needed,  payer = authority,  space = 400,  seeds = [b"sol_ido_pad",  authority.key().as_ref() ,  &_ido_id.to_le_bytes()], bump)]
+    #[account(init_if_needed,  payer = authority,  space = 9000,  seeds = [b"sol_ido_pad",  authority.key().as_ref() ,  &_ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
     pub token_mint: Account<'info, Mint>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
@@ -1077,6 +1108,12 @@ pub enum IDOProgramErrors {
     ParticipationNotValid,
     #[msg("Amount exceeds remaining allocation")]
     AmountExceedsRemainingAllocation,
+    #[msg("IDO token account not match")]
+    DepositTokenAccountNotMatch,
+    #[msg("Admin token account not match")]
+    WithdrawTokenAccountNotMatch,
+    #[msg("Release token account of user not match")]
+    ReleaseTokenAccountNotMatch
 }
 
 impl From<IDOProgramErrors> for ProgramError {
@@ -1190,30 +1227,35 @@ pub fn _get_allocation(
             let participated: u64 = user_pda.participate_amount;
             let raise_decimals: u8 = ido_account._raise_token_decimals;
             let release_decimals: u8 = ido_account._release_token_decimals;
-
+            msg!("participated: {}",participated);
             let mut total: u64 = participated
                 .safe_mul(_rate as u64)
                 .unwrap()
-                .safe_div(100000)
+                .safe_div(1000000)
                 .unwrap()
                 .safe_mul(percent as u64)
                 .unwrap()
                 .safe_div(10000)
                 .unwrap();
-
+            msg!("total: {}",total);
             if raise_decimals > release_decimals {
-                let base = raise_decimals.sub(release_decimals);
-                total = total.safe_div(base.pow(10) as u64).unwrap();
+                let base: u32 = 10;
+                total = total.safe_div(base.safe_pow(raise_decimals.sub(release_decimals)as u32).unwrap() as u64).unwrap();
             }
 
-            if release_decimals > raise_decimals {
-                let base = release_decimals.sub(raise_decimals);
-                total = total.safe_mul(base.pow(10) as u64).unwrap();
+            if release_decimals > raise_decimals {  
+                let base: u32 = 10;
+                total = total.safe_mul(base.safe_pow(release_decimals.sub(raise_decimals) as u32).unwrap() as u64).unwrap();
             }
 
             let mut claimable = total;
-
+            msg!("claimable: {}",claimable);
             let now_ts = Clock::get().unwrap().unix_timestamp as u32;
+
+            msg!("to_timestamp: {}",to_timestamp);
+            msg!("from_timestamp: {}",from_timestamp);
+            msg!("now_ts: {}",now_ts);
+
 
             match (to_timestamp > from_timestamp) && (now_ts < to_timestamp)  {
                 true => {
@@ -1230,12 +1272,13 @@ pub fn _get_allocation(
                 }
                 false => (),
             }
-
+          
             let claimed = user_pda.claim_amount;
-
+            msg!("claimed: {}",claimed);
             if claimed < claimable {
                 remaining = claimable.safe_sub(claimed).unwrap();
-            }
+            }   
+            msg!("remaining: {}",remaining);
 
             let native_token_pub = Pubkey::from_str(NATIVE_MINT).unwrap();
             // //check _release_token is equal publich key 1nc1nerator11111111111111111111111111111111
@@ -1270,3 +1313,4 @@ pub fn _get_allocation(
         }
     }
 }
+

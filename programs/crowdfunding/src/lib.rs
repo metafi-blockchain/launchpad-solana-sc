@@ -32,10 +32,9 @@ pub mod crowdfunding {
     ) -> Result<()> {
 
         let ido_account = &mut ctx.accounts.ido_account;
-        let admin_bum =  &ctx.bumps.ido_admin_account;
         let ido_admin_account   = &mut ctx.accounts.ido_admin_account;
         let token_mint = &ctx.accounts.token_mint;
-        ido_admin_account._init_admin_ido(ctx.accounts.authority.key, &ido_account.key(), admin_bum)?;
+        ido_admin_account._init_admin_ido(ctx.accounts.authority.key, &ido_account.key(), &ctx.bumps.ido_admin_account)?;
 
         ido_account.create_ido(
             &ido_admin_account.key(),
@@ -158,7 +157,7 @@ pub mod crowdfunding {
     ) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
         let user_pda = &mut ctx.accounts.user_ido_account;
-        user_pda.init_user_pda(&index, &address, &ido_account.key(), &!remove)?;   
+        user_pda.init_user_pda(&index, &address, &ido_account.key(), &!remove, &ctx.bumps.user_ido_account)?;   
         //update tier count
         match ido_account._tiers.get_mut(index as usize){
             Some(tier) =>{
@@ -565,16 +564,16 @@ impl  AdminAccount {
 
 #[account]
 pub struct IdoAccount {
-    pub ido_id: u32,
-    pub _rate: u16,
-    pub _open_timestamp: u32,
-    pub _cap: u64,
-    pub _participated: u64,
-    pub _participated_count: u32,
     pub _closed: bool,
     pub _release_token_decimals: u8,
     pub _raise_token_decimals: u8,
     pub bump: u8,
+    pub _rate: u16,
+    pub ido_id: u32,
+    pub _open_timestamp: u32,
+    pub _cap: u64,
+    pub _participated: u64,
+    pub _participated_count: u32,
     pub _release_token: Pubkey,
     pub _release_token_pair: Pubkey,
     pub _raise_token: Pubkey,
@@ -863,8 +862,8 @@ pub enum RoundClass {
 }
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct RoundItem {
-    pub name: String,
     pub duration_seconds: u32,
+    pub name: String,
     pub class: RoundClass,
     pub tier_allocations: Vec<u64>,
 }
@@ -887,37 +886,20 @@ impl RoundItem {
     }
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
-pub struct Participated {
-    pub address: Pubkey,
-    pub amount: u64,
-}
 
-impl Participated {
-    pub fn get_amount(&self, address: &Pubkey) -> u64 {
-        if self.address == *address {
-            return self.amount;
-        }
-        return 0;
-    }
-    pub fn set_amount(&mut self, address: &Pubkey, amount: u64) {
-        if self.address == *address {
-            self.amount = amount;
-        }
-    }
-}
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct ReleaseItem {
-    from_timestamp: u32,
-    to_timestamp: u32,
-    percent: u16,
+    pub percent: u16,
+    pub from_timestamp: u32,
+    pub to_timestamp: u32,
+ 
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct TierItem {
+    pub allocated_count: u16,
     pub name: String,
-    pub allocated_count: u16
 }
 
 
@@ -1093,24 +1075,25 @@ pub struct ModifyTierAllocatedOne<'info> {
 
 #[account]
 pub struct PdaUserStats {
-    pub address: Pubkey, //16
-    pub tier_index: u8, //1
     pub allocated: bool, //1
+    pub bump: u8, //1
+    pub tier_index: u8, //1
     pub participate_amount: u64, //16
     pub claim_amount: u64, //16
+    pub address: Pubkey, //32
     pub owner: Pubkey,//32
-    pub bum: u8, //1
 }
 
 
 
 impl PdaUserStats{
-    pub fn init_user_pda(&mut self, tier_index: &u8,address:&Pubkey, owner:&Pubkey, allocated: &bool) -> Result<()>  {
+    pub fn init_user_pda(&mut self, tier_index: &u8,address:&Pubkey, owner:&Pubkey, allocated: &bool, bump: &u8) -> Result<()>  {
         self.tier_index = *tier_index;
         self.address = *address;
         self.owner = *owner;
         self.tier_index = *tier_index;
         self.allocated = *allocated;
+        self.bump = *bump;
         Ok(())
 
     }

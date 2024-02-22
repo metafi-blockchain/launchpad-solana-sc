@@ -401,8 +401,6 @@ pub mod crowdfunding {
             )?;
         } else {
             
-
-
             let destination = &ctx.accounts.receive_token_account;
             let source = &ctx.accounts.deposit_token_account;
             let token_program = &ctx.accounts.token_program;

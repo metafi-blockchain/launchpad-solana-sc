@@ -30,10 +30,15 @@ pub mod crowdfunding {
         release_token: String,
         _ido_id: u32,
     ) -> Result<()> {
+
         let ido_account = &mut ctx.accounts.ido_account;
+        let admin_bum =  &ctx.accounts.ido_admin_account.clone().bum;
+        let ido_admin_account   = &mut ctx.accounts.ido_admin_account;
         let token_mint = &ctx.accounts.token_mint;
+        ido_admin_account._init_admin_ido(ctx.accounts.authority.key, &ido_account.key(), admin_bum)?;
+
         ido_account.create_ido(
-            ctx.accounts.authority.key,
+            &ido_admin_account.key(),
             &raise_token,
             &token_mint.decimals,
             &rate,
@@ -111,11 +116,6 @@ pub mod crowdfunding {
     pub fn modify_tier(ctx: Context<AdminModifier>, index: u32, name: String) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
 
-        //check owner
-        require!(
-            ido_account._is_admin(&ctx.accounts.authority.key),
-            IDOProgramErrors::NotAuthorized
-        );
 
         match ido_account._tiers.get_mut(index as usize) {
             Some(tier) => {
@@ -131,11 +131,6 @@ pub mod crowdfunding {
     pub fn modify_tiers(ctx: Context<AdminModifier>, name_list: Vec<String>) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
 
-        //check owner
-        require!(
-            ido_account._is_admin(&ctx.accounts.authority.key),
-            IDOProgramErrors::NotAuthorized
-        );
         require!(name_list.len() > 0, IDOProgramErrors::InValidTier);
         ido_account._tiers = vec![];
         //push tier into ido_account._tiers
@@ -145,7 +140,6 @@ pub mod crowdfunding {
                 allocated_count: 0
             });
         }
-
         Ok(())
     }
 
@@ -171,54 +165,53 @@ pub mod crowdfunding {
             }
             None=>{return err!(IDOProgramErrors::InvalidInDex)}
         }
-    
-        
         Ok(())
     }
-    pub fn modify_tier_allocated_multi(
-        ctx: Context<ModifyTierAllocatedMulti>,
-        index: u32,
-        addresses: Vec<String>,
-        _remove: bool
-    ) -> Result<()> {
 
-        // let ido_account = & ctx.accounts.ido_account;
-        let authority = &ctx.accounts.authority;
-        match addresses.get(index as usize) {
-            Some(address) => {
-               
-            //    let user =  Pubkey::from_str(address).unwrap();
+    // pub fn modify_tier_allocated_multi(
+    //     ctx: Context<ModifyTierAllocatedMulti>,
+    //     index: u32,
+    //     addresses: Vec<String>,
+    //     _remove: bool
+    // ) -> Result<()> {
 
-                let system_program =  &ctx.accounts.system_program;
-                let program_id = &Pubkey::from_str("6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq").unwrap();
+    //     // let ido_account = & ctx.accounts.ido_account;
+    //     let authority = &ctx.accounts.authority;
+    //     match addresses.get(index as usize) {
+    //         Some(address) => {
                
-                let _pub_user = Pubkey::from_str(address);
-                let _ido_id = &ctx.accounts.ido_account.ido_id;
+    //         //    let user =  Pubkey::from_str(address).unwrap();
+
+    //             let system_program =  &ctx.accounts.system_program;
+    //             let program_id = &Pubkey::from_str("6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq").unwrap();
+               
+    //             let _pub_user = Pubkey::from_str(address);
+    //             let _ido_id = &ctx.accounts.ido_account.ido_id;
               
-                let lamports = Rent::default().minimum_balance(1);
+    //             let lamports = Rent::default().minimum_balance(1);
 
-                let space = 32 + 1 + 32 + 16 + 16; //PdaUserIdo
+    //             let space = 32 + 1 + 32 + 16 + 16; //PdaUserIdo
 
-                let seeds:&[&[u8]] = &[  b"claim_ido_pad", &authority.key.as_ref(), &_ido_id.to_le_bytes(),  &[ctx.bumps.ido_account]];
+    //             let seeds:&[&[u8]] = &[  b"claim_ido_pad", &authority.key.as_ref(), &_ido_id.to_le_bytes(),  &[ctx.bumps.ido_account]];
                 
-                let (pda, _bump) = Pubkey::find_program_address(&[  "claim_ido_pad".as_ref()], program_id);
+    //             let (pda, _bump) = Pubkey::find_program_address(&[  "claim_ido_pad".as_ref()], program_id);
                 
-                let signers_seeds = &[&seeds[..]];
-                let cpi_create_account = system_instruction::create_account(
-                    authority.key, &pda.key(), lamports, space, program_id);
+    //             let signers_seeds = &[&seeds[..]];
+    //             let cpi_create_account = system_instruction::create_account(
+    //                 authority.key, &pda.key(), lamports, space, program_id);
 
-                   invoke_signed(&cpi_create_account, &[
-                    authority.to_account_info(), 
+    //                invoke_signed(&cpi_create_account, &[
+    //                 authority.to_account_info(), 
                     
-                    system_program.to_account_info(),
-                ], signers_seeds)?;
-            }
-            None => {
-                return err!(IDOProgramErrors::InvalidInDex);
-            }
-        }
-        Ok(())
-    }
+    //                 system_program.to_account_info(),
+    //             ], signers_seeds)?;
+    //         }
+    //         None => {
+    //             return err!(IDOProgramErrors::InvalidInDex);
+    //         }
+    //     }
+    //     Ok(())
+    // }
 
     pub fn setup_release_token(
         ctx: Context<SetupReleaseToken>,
@@ -289,19 +282,16 @@ pub mod crowdfunding {
         ido_account.set_open_timestamp( &open_timestamp)?;
         Ok(())
     }
-    //transferNativeToken
-    //with draw token from pda of admin
+
+    // transferNativeToken
+    // with draw token from pda of admin
     pub fn withdraw_native_token(
         ctx: Context<TransferNativeToken>,
         amount: u64,
         _to: Pubkey,
     ) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
-        let user = &ctx.accounts.user;
-        //check owner
-        require!( ido_account._is_admin(&ctx.accounts.user.key),
-            IDOProgramErrors::NotAuthorized
-        );
+        let user = &ctx.accounts.authority;
 
         let rent_balance = Rent::get()?.minimum_balance(ido_account.to_account_info().data_len());
         let withdraw_amount = **ido_account.to_account_info().lamports.borrow() - rent_balance;
@@ -448,11 +438,6 @@ pub mod crowdfunding {
         Ok(())
     }
 
-
-    
-
-  
-
     pub fn claim(ctx: Context<ClaimToken>, index: u16) -> Result<()> {
         let ido_account = &ctx.accounts.ido_account;
         let user_pda = &mut ctx.accounts.user_pda_account;
@@ -533,20 +518,44 @@ pub mod crowdfunding {
     release_token: String,
     _ido_id: u32)]
 pub struct InitializeIdoAccount<'info> {
-    #[account(init_if_needed,  payer = authority,  space = 900,  seeds = [b"ido_pad",  authority.key().as_ref() ,  &_ido_id.to_le_bytes()], bump)]
-    pub ido_account: Account<'info, IdoAccount>,
+    #[account(init_if_needed,  
+        payer = authority,  space = 10240 ,  seeds = [b"ido_pad",ido_admin_account.key().as_ref(),  &_ido_id.to_le_bytes()], bump)]
+    pub ido_account:  Box<Account<'info, IdoAccount>>,
+    #[account(init_if_needed,  payer = authority,  space = 8 + 65,  seeds = [b"admin_ido", system_program.key().as_ref(),  &_ido_id.to_le_bytes()], bump)]
+    pub ido_admin_account: Account<'info, AdminAccount>,
     pub token_mint: Account<'info, Mint>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
-    pub token_account: Account<'info, TokenAccount>,
+    pub token_account:Box<Account<'info, TokenAccount>>,
     #[account(mut)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
+    // pub program_id: UncheckedAccount<'info>,
 }
+
+#[account]
 pub struct AdminAccount{
     pub authority: Pubkey,
     pub bum: u8,
+    pub owner: Pubkey,
+}
+impl  AdminAccount {
+
+    fn _set_admin(&mut self, admin: &Pubkey)->Result<()>{
+        self.authority =  *admin;
+        Ok(())
+    }
+
+    fn _is_admin(&self, admin: &Pubkey)->bool{
+        return self.authority == *admin;
+    }
+    fn _init_admin_ido (&mut self, admin: &Pubkey,  owner: &Pubkey, bumb: &u8)->Result<()>{
+        self.authority =  *admin;
+        self.owner = *owner;
+        self.bum=*bumb;
+        Ok(())
+    }
 }
 
 #[account]
@@ -568,14 +577,14 @@ pub struct IdoAccount {
     pub _tiers: Vec<TierItem>,
     pub _rounds: Vec<RoundItem>,
     pub _releases: Vec<ReleaseItem>,
+  
 }
-
 
 trait IdoStrait {
     //setter function
     fn create_ido(
         &mut self,
-        user: &Pubkey,
+        admin: &Pubkey,
         raise_token: &String,
         decimals: &u8,
         rate: &u16,
@@ -600,12 +609,10 @@ trait IdoStrait {
     fn modify_rounds(&mut self, name_list: &Vec<String>, duration_list: &Vec<u32>, class_list: &Vec<RoundClass>, ) -> Result<()>;
     fn set_rate(&mut self, rate: &u16) -> Result<()>;
     fn set_open_timestamp(&mut self, open_timestamps: &u32) -> Result<()>;
-    fn _is_admin(&self, user: &Pubkey) -> bool;
     fn close_timestamp(&self) -> u32;
     fn fcfs_timestamp(&self) -> u32;
     fn _is_close(&self) -> bool;
     fn bump(&self) -> u8 ;
-    fn set_admin(&mut self,  admin: &Pubkey)->Result<()>;
 
     // fn get_participated_total(&self, wallet: &Pubkey) -> u64;
 
@@ -616,7 +623,7 @@ impl IdoStrait for IdoAccount {
     //implement create function
     fn create_ido(
         &mut self,
-        user: &Pubkey,
+        admin: &Pubkey,
         raise_token: &String,
         decimals: &u8,
         rate: &u16,
@@ -633,7 +640,7 @@ impl IdoStrait for IdoAccount {
         self._open_timestamp = *open_timestamp;
         self._cap = *cap;
         self._closed = false;
-        self.authority = *user;
+        self.authority = *admin;
         self.ido_id = *ido_id;
         self._release_token = Pubkey::from_str(release_token).unwrap();
         // self._raise_token_account = Pubkey::from_str(raise_token_account).unwrap();
@@ -785,14 +792,7 @@ impl IdoStrait for IdoAccount {
         Ok(())
     }
 
-    fn set_admin(&mut self,  admin: &Pubkey)->Result<()>{
-        self.authority = *admin; 
-        Ok(())
-    }
 
-    fn _is_admin(&self, user: &Pubkey) -> bool {
-        self.authority == *user
-    }
 
     fn close_timestamp(&self) -> u32 {
         let mut ts = self._open_timestamp;
@@ -860,8 +860,8 @@ impl RoundItem {
     pub fn get_tier_allocation(&self, index: u8) -> u64 {
         let tier_allocations = self.tier_allocations.clone();
         match tier_allocations.get(index as usize) {
-            Some(&tier) => {
-                return tier;
+            Some(&al) => {
+                return al;
             }
             None => {
                 return 0;
@@ -912,9 +912,11 @@ pub struct TierItem {
 #[derive(Accounts)]
 pub struct SetupReleaseToken<'info> {
     #[account(mut,
-        has_one = authority, constraint = ido_account.authority == authority.key(),
-        seeds = [b"ido_pad", ido_account.authority.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+        constraint = ido_account.authority == admin_wallet.key(),
+        seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
+    #[account( has_one = authority, seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+    pub admin_wallet: Account<'info, AdminAccount>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
     pub release_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
@@ -973,41 +975,36 @@ pub struct ClaimToken<'info> {
 #[derive(Accounts)]
 pub struct AdminModifier<'info> {
     #[account(mut,
-        has_one = authority, constraint = ido_account.authority == authority.key(),
-        seeds = [b"ido_pad", ido_account.authority.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+        constraint = ido_account.authority == admin_wallet.key(),
+        seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
-
-    #[account(signer)]
+    #[account( has_one = authority, seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+    pub admin_wallet: Account<'info, AdminAccount>,
     pub authority: Signer<'info>,
-
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct TransferNativeToken<'info> {
-    #[account(mut, constraint = ido_account.authority == user.key())]
+    #[account(mut,
+        constraint = ido_account.authority == admin_wallet.key(),
+        seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
+    #[account( has_one = authority, seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+    pub admin_wallet: Account<'info, AdminAccount>,
     #[account(mut)]
-    pub user: Signer<'info>,
+    pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct TransferSplToken<'info> {
-    pub payer: Signer<'info>,
-    #[account(mut)]
-    pub from_ata: Account<'info, TokenAccount>,
-    #[account(mut)]
-    pub to_ata: Account<'info, TokenAccount>,
-    pub token_program: Program<'info, Token>,
 }
 
 #[derive(Accounts)]
 pub struct WithdrawTokenFromPda<'info> {
     #[account(mut,
-        has_one = authority, constraint = ido_account.authority == authority.key(),
-        seeds = [b"ido_pad", ido_account.authority.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+        constraint = ido_account.authority == admin_wallet.key(),
+        seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
+    #[account( has_one = authority, seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+    pub admin_wallet: Account<'info, AdminAccount>,
     #[account(mut)]
     pub authority: Signer<'info>,
     // pub mint: Account<'info, Mint>,
@@ -1021,7 +1018,6 @@ pub struct WithdrawTokenFromPda<'info> {
     pub system_program: Program<'info, System>,
 }
 
-
 #[derive(Accounts)]
 pub struct ModifyTierAllocatedMulti<'info>{
     #[account(mut, seeds = [b"ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
@@ -1030,17 +1026,22 @@ pub struct ModifyTierAllocatedMulti<'info>{
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>, 
 }
+
 #[derive(Accounts)]
 #[instruction(
     index: u8,
     address: Pubkey,
     remove: bool)]
 pub struct ModifyTierAllocatedOne<'info> {
-    #[account( init_if_needed, payer = authority, space = 32+32+16+16+1+1, 
+    #[account( init_if_needed, payer = authority, space = 8+32+32+16+16+1+1, 
         seeds = [b"wl_ido_pad", address.as_ref(), ido_account.key().as_ref()], bump)]
     pub user_ido_account: Account<'info, PdaUserStats>,
-    #[account(mut, seeds = [b"ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
+    #[account(mut,
+        constraint = ido_account.authority == admin_wallet.key(),
+        seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
+    #[account( has_one = authority, seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+    pub admin_wallet: Account<'info, AdminAccount>,
     #[account(mut)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -1056,6 +1057,9 @@ pub struct PdaUserStats {
     pub owner: Pubkey,//32
     pub bum: u8, //1
 }
+
+
+
 impl PdaUserStats{
     pub fn init_user_pda(&mut self, tier_index: &u8,address:&Pubkey, owner:&Pubkey, allocated: &bool) -> Result<()>  {
         self.tier_index = *tier_index;

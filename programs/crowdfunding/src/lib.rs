@@ -9,7 +9,7 @@ use std::ops::Sub;
 use std::str::FromStr;
 static NATIVE_MINT: &str = "So11111111111111111111111111111111111111112";
 
-declare_id!("6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq");
+declare_id!("A7HQd8NLQAj5DRxZUXS5vNkpUfDhnDRkHS8KhrP8eP1t");
 
 #[program]
 pub mod crowdfunding {
@@ -51,6 +51,12 @@ pub mod crowdfunding {
             &ctx.bumps.ido_account,
         )?;
         msg!("Create account success!");
+        Ok(())
+    }
+
+    pub fn update_admin_ido( ctx: Context<UpdateAdminIdo>, admin_address : Pubkey)->Result<()>{
+        let admin_account = &mut ctx.accounts.admin_wallet;
+        admin_account._set_admin(&admin_address)?;
         Ok(())
     }
 
@@ -522,7 +528,7 @@ pub struct InitializeIdoAccount<'info> {
     #[account(init_if_needed,  
         payer = authority,  space = 10240 ,  seeds = [b"ido_pad",ido_admin_account.key().as_ref(),  &_ido_id.to_le_bytes()], bump)]
     pub ido_account:  Box<Account<'info, IdoAccount>>,
-    #[account(init_if_needed,  payer = authority,  space = 8 + 65,  seeds = [b"admin_ido", system_program.key().as_ref(),  &_ido_id.to_le_bytes()], bump)]
+    #[account(init_if_needed,  payer = authority,  space = 8 + 65 + 65,  seeds = [b"admin_ido", system_program.key().as_ref(),  &_ido_id.to_le_bytes()], bump)]
     pub ido_admin_account: Account<'info, AdminAccount>,
     pub token_mint: Account<'info, Mint>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
@@ -923,7 +929,9 @@ pub struct SetupReleaseToken<'info> {
         constraint = ido_account.authority == admin_wallet.key(),
         seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
-    #[account( has_one = authority, seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+    #[account( has_one = authority, 
+        constraint = authority.key() == admin_wallet.authority,
+        seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
     pub admin_wallet: Account<'info, AdminAccount>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
     pub release_token_account: Account<'info, TokenAccount>,
@@ -986,8 +994,25 @@ pub struct AdminModifier<'info> {
         constraint = ido_account.authority == admin_wallet.key(),
         seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
-    #[account(constraint = ido_account.key() == admin_wallet.owner,
+    #[account(
+        mut,
+        constraint = ido_account.key() == admin_wallet.owner,constraint = authority.key() == admin_wallet.authority,
      has_one = authority, seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+    pub admin_wallet: Account<'info, AdminAccount>,
+    pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+
+#[derive(Accounts)]
+pub struct UpdateAdminIdo<'info> {
+    #[account(
+        constraint = ido_account.authority == admin_wallet.key(),
+        seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+    pub ido_account: Account<'info, IdoAccount>,
+    #[account( mut,
+        constraint = ido_account.key() == admin_wallet.owner,constraint = authority.key() == admin_wallet.authority,
+        has_one = authority, seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
     pub admin_wallet: Account<'info, AdminAccount>,
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,

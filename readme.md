@@ -20,5 +20,5 @@ anchor deploy    //deploy code to blockchain
 anchor test  //run deploy and test
 anchor build --verifiable       //verify code
 
-
+solana rent 1024
 check log: ❯ solana confirm -v 32EXWwSFerpucapNyEC4XvsRyJY1SqfqSmUxBvLQKUFKfeatCYEeydEQun7cQvTtNS44iSKZaAFaH6UNpesNwxGk

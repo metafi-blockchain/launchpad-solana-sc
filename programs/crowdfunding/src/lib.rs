@@ -32,7 +32,7 @@ pub mod crowdfunding {
     ) -> Result<()> {
 
         let ido_account = &mut ctx.accounts.ido_account;
-        let admin_bum =  &ctx.accounts.ido_admin_account.clone().bum;
+        let admin_bum =  &ctx.bumps.ido_admin_account;
         let ido_admin_account   = &mut ctx.accounts.ido_admin_account;
         let token_mint = &ctx.accounts.token_mint;
         ido_admin_account._init_admin_ido(ctx.accounts.authority.key, &ido_account.key(), admin_bum)?;
@@ -48,6 +48,7 @@ pub mod crowdfunding {
             &cap,
             &release_token,
             &_ido_id,
+            &ctx.bumps.ido_account,
         )?;
         msg!("Create account success!");
         Ok(())
@@ -537,7 +538,7 @@ pub struct InitializeIdoAccount<'info> {
 #[account]
 pub struct AdminAccount{
     pub authority: Pubkey,
-    pub bum: u8,
+    pub bump: u8,
     pub owner: Pubkey,
 }
 impl  AdminAccount {
@@ -550,10 +551,10 @@ impl  AdminAccount {
     fn _is_admin(&self, admin: &Pubkey)->bool{
         return self.authority == *admin;
     }
-    fn _init_admin_ido (&mut self, admin: &Pubkey,  owner: &Pubkey, bumb: &u8)->Result<()>{
+    fn _init_admin_ido (&mut self, admin: &Pubkey,  owner: &Pubkey, bump: &u8)->Result<()>{
         self.authority =  *admin;
         self.owner = *owner;
-        self.bum=*bumb;
+        self.bump=*bump;
         Ok(())
     }
 }
@@ -577,7 +578,6 @@ pub struct IdoAccount {
     pub _tiers: Vec<TierItem>,
     pub _rounds: Vec<RoundItem>,
     pub _releases: Vec<ReleaseItem>,
-  
 }
 
 trait IdoStrait {
@@ -594,6 +594,7 @@ trait IdoStrait {
         cap: &u64,
         release_token: &String,
         ido_id: &u32,
+        bump: &u8,
     ) -> Result<()>;
 
     fn init_tier(&mut self) -> Result<()>;
@@ -633,6 +634,7 @@ impl IdoStrait for IdoAccount {
         cap: &u64,
         release_token: &String,
         ido_id: &u32,
+        bump: &u8,
     ) -> Result<()> {
         self._raise_token = Pubkey::from_str(raise_token).unwrap();
         self._raise_token_decimals = *decimals;
@@ -642,8 +644,8 @@ impl IdoStrait for IdoAccount {
         self._closed = false;
         self.authority = *admin;
         self.ido_id = *ido_id;
-        self._release_token = Pubkey::from_str(release_token).unwrap();
-        // self._raise_token_account = Pubkey::from_str(raise_token_account).unwrap();
+        self.bump = *bump;
+        self._release_token = Pubkey::from_str(release_token).unwrap();   
         self.init_tier()?;
         self.init_rounds(allocation_duration, fcfs_duration)?;
         Ok(())
@@ -663,6 +665,14 @@ impl IdoStrait for IdoAccount {
         });
         self.add_tier(TierItem {
             name: String::from("Top 200"),
+            allocated_count: 0,
+        });
+        self.add_tier(TierItem {
+            name: String::from("Top 300"),
+            allocated_count: 0,
+        });
+        self.add_tier(TierItem {
+            name: String::from("Top 400"),
             allocated_count: 0,
         });
         Ok(())
@@ -853,7 +863,6 @@ pub struct RoundItem {
     pub duration_seconds: u32,
     pub class: RoundClass,
     pub tier_allocations: Vec<u64>,
-   
 }
 
 impl RoundItem {
@@ -899,7 +908,6 @@ pub struct ReleaseItem {
     from_timestamp: u32,
     to_timestamp: u32,
     percent: u16,
-    // claimed: Vec<ClaimedAmount>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
@@ -978,7 +986,8 @@ pub struct AdminModifier<'info> {
         constraint = ido_account.authority == admin_wallet.key(),
         seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
-    #[account( has_one = authority, seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+    #[account(constraint = ido_account.key() == admin_wallet.owner,
+     has_one = authority, seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
     pub admin_wallet: Account<'info, AdminAccount>,
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -1020,8 +1029,12 @@ pub struct WithdrawTokenFromPda<'info> {
 
 #[derive(Accounts)]
 pub struct ModifyTierAllocatedMulti<'info>{
-    #[account(mut, seeds = [b"ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
+    #[account(mut,
+        constraint = ido_account.authority == admin_wallet.key(),
+        seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
     pub ido_account: Account<'info, IdoAccount>,
+    #[account( has_one = authority, seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+    pub admin_wallet: Account<'info, AdminAccount>,
     #[account(mut)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>, 

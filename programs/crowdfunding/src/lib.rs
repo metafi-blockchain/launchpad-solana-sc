@@ -488,7 +488,7 @@ pub mod crowdfunding {
                 b"ido_pad",
                 admin.as_ref(),
                 &_ido_id.to_le_bytes(),
-                &[ctx.bumps.ido_account],
+                &[ctx.accounts.ido_account.bump],
             ];
             let signer = &[&seeds[..]];
     
@@ -927,10 +927,13 @@ pub struct SetupReleaseToken<'info> {
 
 #[derive(Accounts)]
 pub struct Participate<'info> {
-    #[account(mut, seeds = [b"ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
+    #[account(mut, seeds = [b"ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump = ido_account.bump)]
     pub ido_account: Account<'info, IdoAccount>,
 
-    #[account(mut, seeds = [b"wl_ido_pad", user.key().as_ref(), ido_account.key().as_ref()], bump)]
+    #[account(mut, 
+        constraint = user_pda_account.allocated == true,
+        constraint = user_pda_account.address == user.key(),
+        seeds = [b"wl_ido_pad", user.key().as_ref(), ido_account.key().as_ref()], bump = user_pda_account.bump)]
     pub user_pda_account: Account<'info, PdaUserStats>,
 
     #[account(mut)]
@@ -951,13 +954,18 @@ pub struct ClaimToken<'info> {
     #[account(init_if_needed,  payer = user, associated_token::mint = token_mint, associated_token::authority = user)]
     pub user_token_account: Account<'info, TokenAccount>,
    
-    #[account(mut, seeds = [b"ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump)]
+    #[account(mut, seeds = [b"ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], 
+            // guranteed to be the canonical bump every time
+             bump = ido_account.bump)]
     pub ido_account: Account<'info, IdoAccount>,
 
     #[account(mut)]
     pub ido_token_account: Account<'info, TokenAccount>,
 
-    #[account(   mut, seeds = [b"wl_ido_pad", user.key().as_ref(), ido_account.key().as_ref()], bump)]
+    #[account(mut, 
+        constraint = user_pda_account.allocated == true,
+        constraint = user_pda_account.address == user.key(),
+        seeds = [b"wl_ido_pad", user.key().as_ref(), ido_account.key().as_ref()], bump = user_pda_account.bump)]
     pub user_pda_account: Account<'info, PdaUserStats>,
 
     #[account(mut)]

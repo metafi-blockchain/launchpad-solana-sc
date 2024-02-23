@@ -95,7 +95,7 @@ describe("crowd funding testing", () => {
 
   const raise_token_test = "3uWjtg9ZRjGbSzxYx4NgDLBwdFxhPLi9aArN9tiu6m8b";
   const release_token = "Hv6634qu7ucXkaHDgcH3H5fUH1grmSNwpspYdCkSG7hK";
-  const ido_id = 100;
+  const ido_id = 99;
 
   let adminPda = getPdaAdmin(program,ido_id )
 

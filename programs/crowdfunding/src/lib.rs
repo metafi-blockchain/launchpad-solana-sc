@@ -523,9 +523,9 @@ pub mod crowdfunding {
     _ido_id: u32)]
 pub struct InitializeIdoAccount<'info> {
     #[account(init_if_needed,  
-        payer = authority,  space = 10240 ,  seeds = [b"ido_pad",ido_admin_account.key().as_ref(),  &_ido_id.to_le_bytes()], bump)]
+        payer = authority,  space = 8 + 2442,  seeds = [b"ido_pad",ido_admin_account.key().as_ref(),  &_ido_id.to_le_bytes()], bump)]
     pub ido_account:  Box<Account<'info, IdoAccount>>,
-    #[account(init_if_needed,  payer = authority,  space = 8 + 65 + 65,  seeds = [b"admin_ido", system_program.key().as_ref(),  &_ido_id.to_le_bytes()], bump)]
+    #[account(init_if_needed,  payer = authority,  space = 8 + 65,  seeds = [b"admin_ido", system_program.key().as_ref(),  &_ido_id.to_le_bytes()], bump)]
     pub ido_admin_account: Account<'info, AdminAccount>,
     pub token_mint: Account<'info, Mint>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
@@ -564,23 +564,23 @@ impl  AdminAccount {
 
 #[account]
 pub struct IdoAccount {
-    pub _closed: bool,
-    pub _release_token_decimals: u8,
-    pub _raise_token_decimals: u8,
-    pub bump: u8,
-    pub _rate: u16,
-    pub ido_id: u32,
-    pub _open_timestamp: u32,
-    pub _cap: u64,
-    pub _participated: u64,
-    pub _participated_count: u32,
-    pub _release_token: Pubkey,
-    pub _release_token_pair: Pubkey,
-    pub _raise_token: Pubkey,
-    pub authority: Pubkey,
-    pub _tiers: Vec<TierItem>,
-    pub _rounds: Vec<RoundItem>,
-    pub _releases: Vec<ReleaseItem>,
+    pub _closed: bool, //1
+    pub _release_token_decimals: u8, //1
+    pub _raise_token_decimals: u8, //1
+    pub bump: u8, //1
+    pub _rate: u16, //2
+    pub ido_id: u32, //4
+    pub _open_timestamp: u32, //4
+    pub _participated_count: u32, //4
+    pub _participated: u64, //8
+    pub _cap: u64, //8
+    pub _release_token: Pubkey, //32
+    pub _release_token_pair: Pubkey, //32
+    pub _raise_token: Pubkey, //32
+    pub authority: Pubkey, //32
+    pub _tiers: Vec<TierItem>, //4 +(4+ 32 + 2) * 10 
+    pub _rounds: Vec<RoundItem>, //4 + 126*3
+    pub _releases: Vec<ReleaseItem>, //4 + 12 * 10
 }
 
 trait IdoStrait {
@@ -862,10 +862,10 @@ pub enum RoundClass {
 }
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct RoundItem {
-    pub duration_seconds: u32,
-    pub name: String,
-    pub class: RoundClass,
-    pub tier_allocations: Vec<u64>,
+    pub duration_seconds: u32, //4
+    pub name: String, //4 + 32
+    pub class: RoundClass,  //1 + 1
+    pub tier_allocations: Vec<u64>, //4 + 8*10 
 }
 
 impl RoundItem {

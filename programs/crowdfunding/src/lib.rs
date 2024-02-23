@@ -907,12 +907,12 @@ pub struct TierItem {
 pub struct SetupReleaseToken<'info> {
     #[account(mut,
         constraint = ido_account.authority == admin_wallet.key(),
-        seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
-    pub ido_account: Account<'info, IdoAccount>,
+        seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump = ido_account.bump)]
+    pub ido_account:  Box<Account<'info, IdoAccount>>,
     #[account( has_one = authority, 
         constraint = authority.key() == admin_wallet.authority,
-        seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
-    pub admin_wallet: Account<'info, AdminAccount>,
+        seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump = admin_wallet.bump)]
+    pub admin_wallet:  Box<Account<'info, AdminAccount>>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
     pub release_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
@@ -928,7 +928,7 @@ pub struct SetupReleaseToken<'info> {
 #[derive(Accounts)]
 pub struct Participate<'info> {
     #[account(mut, seeds = [b"ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump = ido_account.bump)]
-    pub ido_account: Account<'info, IdoAccount>,
+    pub ido_account: Box<Account<'info, IdoAccount>>,
 
     #[account(mut, 
         constraint = user_pda_account.allocated == true,
@@ -957,7 +957,7 @@ pub struct ClaimToken<'info> {
     #[account(mut, seeds = [b"ido_pad", ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], 
             // guranteed to be the canonical bump every time
              bump = ido_account.bump)]
-    pub ido_account: Account<'info, IdoAccount>,
+    pub ido_account: Box<Account<'info, IdoAccount>>,
 
     #[account(mut)]
     pub ido_token_account: Account<'info, TokenAccount>,
@@ -980,12 +980,12 @@ pub struct ClaimToken<'info> {
 pub struct AdminModifier<'info> {
     #[account(
         constraint = ido_account.authority == admin_wallet.key(),
-        seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
-    pub ido_account: Account<'info, IdoAccount>,
+        seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump = ido_account.bump)]
+    pub ido_account:Box<Account<'info, IdoAccount>>,
     #[account(
         mut,
         constraint = ido_account.key() == admin_wallet.owner,constraint = authority.key() == admin_wallet.authority,
-        has_one = authority, seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+        has_one = authority, seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump = admin_wallet.bump)]
     pub admin_wallet: Account<'info, AdminAccount>,
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -996,11 +996,11 @@ pub struct AdminModifier<'info> {
 pub struct UpdateAdminIdo<'info> {
     #[account(
         constraint = ido_account.authority == admin_wallet.key(),
-        seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
-    pub ido_account: Account<'info, IdoAccount>,
+        seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump = ido_account.bump)]
+    pub ido_account: Box<Account<'info, IdoAccount>>,
     #[account( mut,
         constraint = ido_account.key() == admin_wallet.owner,constraint = authority.key() == admin_wallet.authority,
-        has_one = authority, seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+        has_one = authority, seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump = admin_wallet.bump)]
     pub admin_wallet: Account<'info, AdminAccount>,
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -1011,7 +1011,7 @@ pub struct TransferNativeToken<'info> {
     #[account(mut,
         constraint = ido_account.authority == admin_wallet.key(),
         seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
-    pub ido_account: Account<'info, IdoAccount>,
+    pub ido_account: Box<Account<'info, IdoAccount>>,
     #[account( has_one = authority, 
         constraint = ido_account.key() == admin_wallet.owner,constraint = authority.key() == admin_wallet.authority,
         seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
@@ -1026,7 +1026,7 @@ pub struct WithdrawTokenFromPda<'info> {
     #[account(mut,
         constraint = ido_account.authority == admin_wallet.key(),
         seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
-    pub ido_account: Account<'info, IdoAccount>,
+    pub ido_account: Box<Account<'info, IdoAccount>>,
     #[account( has_one = authority,
         constraint = ido_account.key() == admin_wallet.owner,constraint = authority.key() == admin_wallet.authority,
         seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
@@ -1049,11 +1049,11 @@ pub struct ModifyTierAllocatedMulti<'info>{
     #[account(mut,
         constraint = ido_account.authority == admin_wallet.key(),
         seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
-    pub ido_account: Account<'info, IdoAccount>,
+    pub ido_account: Box<Account<'info, IdoAccount>>,
     #[account( has_one = authority, 
         constraint = ido_account.key() == admin_wallet.owner,constraint = authority.key() == admin_wallet.authority,
         seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
-    pub admin_wallet: Account<'info, AdminAccount>,
+    pub admin_wallet: Box<Account<'info, AdminAccount>>,
     #[account(mut)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>, 
@@ -1067,11 +1067,11 @@ pub struct ModifyTierAllocatedMulti<'info>{
 pub struct ModifyTierAllocatedOne<'info> {
     #[account( init_if_needed, payer = authority, space = 8+32+32+16+16+1+1, 
         seeds = [b"wl_ido_pad", address.as_ref(), ido_account.key().as_ref()], bump)]
-    pub user_ido_account: Account<'info, PdaUserStats>,
+    pub user_ido_account: Box<Account<'info, PdaUserStats>>,
     #[account(mut,
         constraint = ido_account.authority == admin_wallet.key(),
         seeds = [b"ido_pad", admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
-    pub ido_account: Account<'info, IdoAccount>,
+    pub ido_account: Box<Account<'info, IdoAccount>>,
     #[account( has_one = authority, 
         constraint = ido_account.key() == admin_wallet.owner,constraint = authority.key() == admin_wallet.authority,
         seeds = [b"admin_ido", system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]

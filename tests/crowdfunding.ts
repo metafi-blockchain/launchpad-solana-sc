@@ -17,11 +17,7 @@ import { getAllocationRemaining, getPdaUser } from "./ido.ultil";
 import { IdoAccount } from "./ido_type";
 // let IDO_TEST = "ARRwPx2wrkn1MHvicoSam1tRFFkXxRKHQcqTgBBYsaut";
 
-enum RoundClass {
-  Allocation,
-  FcfsPrepare,
-  Fcfs,
-}
+
 describe("crowd funding testing", () => {
   let programId = new PublicKey("6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq");
 
@@ -41,8 +37,6 @@ describe("crowd funding testing", () => {
       console.log(error);
     }
   }
-
-
 
   const getInfoIdoAccount = async (program: any, idoAccountAddress: String) => {
     const idoAccountPub = new PublicKey(idoAccountAddress)

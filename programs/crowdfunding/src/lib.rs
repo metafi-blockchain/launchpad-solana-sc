@@ -14,7 +14,7 @@ declare_id!("A7HQd8NLQAj5DRxZUXS5vNkpUfDhnDRkHS8KhrP8eP1t");
 #[program]
 pub mod crowdfunding {
 
-    use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
+    // use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
     use anchor_spl::associated_token::get_associated_token_address;
 
     use super::*;
@@ -446,6 +446,7 @@ pub mod crowdfunding {
         let ido_account = &ctx.accounts.ido_account;
         let user_pda = &mut ctx.accounts.user_pda_account;
         let ido_release_token_account = &ctx.accounts.ido_token_account;
+        let release_token_pool_account = &ctx.accounts.release_token_pool_account;
         
         let user_token_account = &ctx.accounts.user_token_account;
 
@@ -463,7 +464,7 @@ pub mod crowdfunding {
         }
 
         for i in 0..index {
-            let (_, _, _, _, _, _, remaining, status) = _get_allocation(&ido_account, &user_pda, ido_release_token_account, i as usize);
+            let (_, _, _, _, _, _, remaining, status) = _get_allocation(&ido_account, &user_pda, ido_release_token_account, release_token_pool_account, i as usize);
             
             if status != 1 {
                 continue;
@@ -529,7 +530,7 @@ pub struct InitializeIdoAccount<'info> {
     pub ido_admin_account: Account<'info, AdminAccount>,
     pub token_mint: Account<'info, Mint>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
-    pub token_account:Box<Account<'info, TokenAccount>>,
+    pub token_account:Account<'info, TokenAccount>,
     #[account(mut)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -967,6 +968,7 @@ pub struct ClaimToken<'info> {
         constraint = user_pda_account.address == user.key(),
         seeds = [b"wl_ido_pad", user.key().as_ref(), ido_account.key().as_ref()], bump = user_pda_account.bump)]
     pub user_pda_account: Account<'info, PdaUserStats>,
+    pub release_token_pool_account: Account<'info, TokenAccount>,
 
     #[account(mut)]
     pub user: Signer<'info>,
@@ -1271,6 +1273,7 @@ pub fn _get_allocation(
     ido_account: &IdoAccount,
     user_pda: &PdaUserStats,
     release_token_account: &TokenAccount, 
+    release_token_pool: &TokenAccount,
     index: usize,
 ) -> (u32, u32, u16, u64, u64, u64, u64, u8) {
     match ido_account._releases.get(index) {
@@ -1348,8 +1351,10 @@ pub fn _get_allocation(
                         status = 2;
                     }
                     //check balance release pair token account > 0  //doing
-                    // if(remaining == 0 || remaining > IERC20(_releaseToken).balanceOf(address(this)))
-                    //     status = 2;
+                    if remaining == 0 || remaining > release_token_pool.amount{
+                        status = 2;
+                    }
+                       
                 }
             }
 

@@ -759,7 +759,6 @@ dependencies = [
  "ahash 0.8.8",
  "anchor-lang",
  "anchor-spl",
- "bytemuck",
  "solana-safe-math",
  "spl-token",
 ]

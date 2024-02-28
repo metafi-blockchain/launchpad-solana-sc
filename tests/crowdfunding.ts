@@ -19,7 +19,6 @@ import { IdoAccount } from "./ido_type";
 
 
 describe("crowd funding testing", () => {
-  let programId = new PublicKey("6KMVQWmTXpd36ryMi7i91yeLsgM6S4BiaTX3UczEkvqq");
 
   const getTokenInfoByTokenAccount = async (connection: Connection, token_mint: String, toWalletPub: String) => {
 

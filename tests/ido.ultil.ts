@@ -90,6 +90,7 @@ export const idoInfo = (idoAccount:IdoAccount, currentTimestamp: number)=>{
                 state = "F";
             
         }  
+        
         let tiers = idoAccount.tiers;
 
   

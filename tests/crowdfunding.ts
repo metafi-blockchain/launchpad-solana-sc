@@ -88,7 +88,7 @@ describe("crowd funding testing", () => {
 
   const raise_token_test = "3uWjtg9ZRjGbSzxYx4NgDLBwdFxhPLi9aArN9tiu6m8b";
   const release_token = "Hv6634qu7ucXkaHDgcH3H5fUH1grmSNwpspYdCkSG7hK";
-  const ido_id = 99;
+  const ido_id = 1;
 
   let adminPda = getPdaAdmin(program,ido_id )
 
@@ -357,60 +357,60 @@ describe("crowd funding testing", () => {
   //  }
   // })
 
-  // it("joinIdo", async () => {
-  //   // const token_raise = "3uWjtg9ZRjGbSzxYx4NgDLBwdFxhPLi9aArN9tiu6m8b";
+  it("joinIdo", async () => {
+    // const token_raise = "3uWjtg9ZRjGbSzxYx4NgDLBwdFxhPLi9aArN9tiu6m8b";
 
-  //   let idoPDA =  getPdaIdo(program, ido_id,"ido_pad");
-
-
-  //   const token_mint = new PublicKey(raise_token_test);
+    let idoPDA =  getPdaIdo(program, ido_id, adminPda);
 
 
+    const token_mint = new PublicKey(raise_token_test);
 
-  //   const desAccount = getAssociatedTokenAddressSync(token_mint, idoPDA, true);
 
-  //   console.log("desAccount: " , desAccount.toString());
+
+    const desAccount = getAssociatedTokenAddressSync(token_mint, idoPDA, true);
+
+    console.log("desAccount: " , desAccount.toString());
     
-  //   const sourceAccount = getAssociatedTokenAddressSync(token_mint, provider.publicKey, true);
+    const sourceAccount = getAssociatedTokenAddressSync(token_mint, provider.publicKey, true);
 
-  //   let userPDA =  getPdaUser(program.programId,  idoPDA, ido_id, provider.publicKey);
+    let userPDA =  getPdaUser(program.programId,  idoPDA, ido_id, provider.publicKey);
 
-  //     try {
-  //       let idoInfo = await program.account.idoAccount.fetch(idoPDA);
-  //       let userInfo = await program.account.pdaUserStats.fetch(userPDA);
+      try {
+        let idoInfo = await program.account.idoAccount.fetch(idoPDA);
+        let userInfo = await program.account.pdaUserStats.fetch(userPDA);
 
-  //       const infoWallet = getAllocationRemaining(1, userInfo.tierIndex, <IdoAccount><unknown>idoInfo ,  userInfo)
+        const infoWallet = getAllocationRemaining(1, userInfo.tierIndex, <IdoAccount><unknown>idoInfo ,  userInfo)
 
-  //       console.log(JSON.stringify(infoWallet));
+        console.log(JSON.stringify(infoWallet));
         
 
-  //       //   console.log((tokenAccountInfo.value?.data).parsed.info.tokenAmount.amount);
-  //       let amount = new BN(0.1 * LAMPORTS_PER_SOL);
-  //       let tx = await program.methods
-  //         .participate(amount).accounts({
-  //           idoAccount: idoPDA,
-  //           userPdaAccount: userPDA,
-  //           user: provider.publicKey,
-  //           depositTokenAccount: sourceAccount,
-  //           receiveTokenAccount: desAccount,
-  //           tokenProgram: TOKEN_PROGRAM_ID,
-  //           systemProgram: anchor.web3.SystemProgram.programId
-  //         })
-  //         .rpc();
-  //       console.log("joinIDO success at tx: ", tx);
-  //     } catch (error) {
-  //       console.log(error);
+        //   console.log((tokenAccountInfo.value?.data).parsed.info.tokenAmount.amount);
+        let amount = new BN(0.1 * LAMPORTS_PER_SOL);
+        let tx = await program.methods
+          .participate(amount).accounts({
+            idoAccount: idoPDA,
+            userPdaAccount: userPDA,
+            user: provider.publicKey,
+            depositTokenAccount: sourceAccount,
+            receiveTokenAccount: desAccount,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: anchor.web3.SystemProgram.programId
+          })
+          .rpc();
+        console.log("joinIDO success at tx: ", tx);
+      } catch (error) {
+        console.log(error);
         
         
-  //     }
-  //     let _userInfo = await program.account.pdaUserStats.fetch(userPDA);
-  //     const _idoInfo = await program.account.idoAccount.fetch(idoPDA);
+      }
+      let _userInfo = await program.account.pdaUserStats.fetch(userPDA);
+      const _idoInfo = await program.account.idoAccount.fetch(idoPDA);
 
-  //     // const userInfo = await getInfoIdoAccount(program, userPDA.toString());
-  //     console.log(JSON.stringify(_userInfo));
-  //     console.log(JSON.stringify(_idoInfo));
+      // const userInfo = await getInfoIdoAccount(program, userPDA.toString());
+      console.log(JSON.stringify(_userInfo));
+      console.log(JSON.stringify(_idoInfo));
 
-  // });
+  });
 
   // test modify tier
   // it("modify tier", async () => {

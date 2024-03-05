@@ -229,6 +229,7 @@ contract SwapStakingContract is Initializable, ContextUpgradeSafe, AccessControl
         uint256 reward = _computeReward(stakeDeposit);
 
         require(stakeDeposit.amount >= amount, "[withdraw] Remaining stakedeposit amount must be higher than withdraw amount");
+       
         if (stakeDeposit.amount > amount) {
             _stakeDeposits[msg.sender].amount = _stakeDeposits[msg.sender].amount.sub(amount);
             _stakeDeposits[msg.sender].endDate = 0;

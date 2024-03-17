@@ -7,14 +7,24 @@ use solana_safe_math::SafeMath;
 use std::ops::Add;
 use std::ops::Sub;
 use std::str::FromStr;
-static NATIVE_MINT: &str = "So11111111111111111111111111111111111111112";
+use std::io::{self, Write};
+use solana_program::{
+    entrypoint::ProgramResult,
+    program_pack::{IsInitialized, Pack, Sealed},
+    program_memory::sol_memcpy,
+};
+
+
 
 declare_id!("A7HQd8NLQAj5DRxZUXS5vNkpUfDhnDRkHS8KhrP8eP1t");
 
 #[program]
 pub mod crowdfunding {
 
+    use std::borrow::BorrowMut;
+
     use anchor_spl::associated_token::get_associated_token_address;
+
 
     use super::*;
 
@@ -33,7 +43,7 @@ pub mod crowdfunding {
         fcfs_duration: u32,
         cap: u64,
         release_token: String,
-        _ido_id: u32,
+        ido_id: u64,
     ) -> Result<()> {
 
         let ido_account = &mut ctx.accounts.ido_account;
@@ -51,7 +61,7 @@ pub mod crowdfunding {
             &fcfs_duration,
             &cap,
             &release_token,
-            &_ido_id,
+            &ido_id,
             &ctx.bumps.ido_account,
         )?;
         msg!("Create account success!");
@@ -160,7 +170,97 @@ pub mod crowdfunding {
     ) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
         let user_pda = &mut ctx.accounts.user_ido_account;
-        user_pda.init_user_pda(&index, &address, &ido_account.key(), &!remove, &ctx.bumps.user_ido_account)?;   
+
+        //get data user pda
+        if user_pda.bump != 0 && user_pda.address == address{
+            user_pda.update_allocate(&index,  &!remove);
+            ido_account.update_allocate_count( &(index as usize),  &!remove)?;
+
+        }else {
+            if !remove{
+                user_pda.init_user_pda(&index, &address, &ido_account.key(), &!remove, &ctx.bumps.user_ido_account)?;
+                ido_account.update_allocate_count( &(index as usize),  &!remove)?;
+            }
+        }
+        
+        Ok(())
+    }
+    pub fn modify_tier_allocated_multi(
+        ctx: Context<ModifyTierAllocatedMulti>,
+        index: u8,
+        addresses: Vec<Pubkey>,
+        remove: bool,
+    ) -> Result<()> {
+        let ido_account = &mut ctx.accounts.ido_account;
+ 
+        let remaining_accounts = &ctx.remaining_accounts;
+        msg!("remaining_accounts {}", remaining_accounts.len());
+        msg!("addresses {}", addresses.len());
+
+        require!(addresses.len() ==  remaining_accounts.len(), IDOProgramErrors::InvalidInDex);
+       
+         for (i, address) in addresses.iter().enumerate() {
+           
+            let user_pda  = &remaining_accounts[i];
+
+            let (pda, bump) = Pubkey::find_program_address(
+                &[AUTHORITY_USER, ido_account.key().as_ref(),  address.as_ref(),],
+                ctx.program_id,
+            ); 
+            // require!(pda == user_pda.key(), IDOProgramErrors::InvalidInDex);
+            msg!("user_pda {}", pda);
+
+            if user_pda.data_is_empty(){
+                msg!("need create account {}", pda);
+                
+                //check account and if not exist then create new
+                // anchor_lang::solana_program::program::invoke_signed(
+                //     &anchor_lang::solana_program::system_instruction::create_account(
+                //         payer.key,
+                //         admin_account_pda.key,
+                //         Rent::get()?.minimum_balance(AdminPda2::SIZE),
+                //         AdminPda2::SIZE as u64,
+                //         self.program_id,
+                //     ),
+                //     &[
+                //         payer.clone(),
+                //         admin_account_pda.clone(),
+                //         system_program_account.clone(),
+                //     ],
+                //     &[&[ADMIN_ACCOUNT_SEED, &[bump]]],
+               
+            } else {
+
+                let _user_pda = &ctx.remaining_accounts[i];
+
+                let user_pda  = &mut PdaUserStats::from_account_info(_user_pda)?;
+                
+                user_pda.update_allocate(&index, &!remove);
+
+          
+
+                let user_pda_data = _user_pda.data.try_borrow_mut();
+
+  
+
+           
+                msg!("allocated {}", user_pda.allocated);
+                
+                // let user_pda_data: PdaUserStats = anchor_lang::prelude::AccountInfo::<'a>::deserialize_data(user_pda_data_data).unwrap();
+                
+                 // Modify the account data
+        
+                // let user_pda_info = &user_pda_info_tmp;
+
+                // user.update_allocate(&index, &remove)?;          
+            }
+        
+          
+
+
+        }
+
+
         //update tier count
         match ido_account._tiers.get_mut(index as usize){
             Some(tier) =>{
@@ -283,7 +383,8 @@ pub mod crowdfunding {
         //require admin token account
         require!(_admin_token_address == destination.key(),  IDOProgramErrors::WithdrawTokenAccountNotMatch);
 
-        let seeds: &[&[u8]] = &[AUTHORITY_IDO, &[ctx.accounts.ido_account.bump]];
+        let ido_id = ido_account.ido_id.to_le_bytes();
+        let seeds: &[&[u8]] = &[AUTHORITY_IDO, ido_id.as_ref(), &[ctx.accounts.ido_account.bump]];
         let signer = &seeds[..];
         _transfer_token_from_ido( &TokenTransferParams {
             source: ido_token_account.to_account_info(),
@@ -320,7 +421,7 @@ pub mod crowdfunding {
         require!( allocation_remaining >= amount, IDOProgramErrors::AmountExceedsRemainingAllocation);
 
         //if raise token is native token
-        if ido_account._raise_token == Pubkey::from_str(NATIVE_MINT).unwrap() {
+        if ido_account._raise_token == Pubkey::default() {
             //get user lam port
             let user_lamport = user.get_lamports();
             //check balance
@@ -393,7 +494,7 @@ pub mod crowdfunding {
         //check user token address
         require!(_user_token_address == user_token_account.key(), IDOProgramErrors::ReleaseTokenAccountNotMatch);
 
-        if ido_account._release_token == Pubkey::from_str("11111111111111111111111111111111").unwrap() {
+        if ido_account._release_token == Pubkey::default() {
             return err!(IDOProgramErrors::InvalidReleaseToken);
         }
     
@@ -409,7 +510,8 @@ pub mod crowdfunding {
             }
             //transfer release token from pda to user
 
-            let seeds: &[&[u8]] = &[AUTHORITY_IDO, &[ctx.accounts.ido_account.bump]];
+            let ido_id = ido_account.ido_id.to_le_bytes();
+            let seeds: &[&[u8]] = &[AUTHORITY_IDO, ido_id.as_ref(), &[ctx.accounts.ido_account.bump]];
             let signer = &seeds[..];
 
             _transfer_token_from_ido( &TokenTransferParams {
@@ -440,21 +542,23 @@ pub mod crowdfunding {
 #[instruction(
     raise_token: String,
     rate: u16,
-    open_timestamp: u32,
+    open_timestamp: i64,
     allocation_duration: u32,
     fcfs_duration: u32,
     cap: u64,
     release_token: String,
-    _ido_id: u32)]
+    ido_id: u64)]
 pub struct InitializeIdoAccount<'info> {
     #[account(init_if_needed,  
-        payer = authority,  space = 8 + 2442,  seeds = [AUTHORITY_IDO ,ido_admin_account.key().as_ref(),  &_ido_id.to_le_bytes()], bump)]
+        payer = authority,  space = 8 + 2442,  
+        seeds = [AUTHORITY_IDO , ido_id.to_le_bytes().as_ref()], bump)]
     pub ido_account:  Box<Account<'info, IdoAccount>>,
-    #[account(init_if_needed,  payer = authority,  space = 8 + 65,  seeds = [AUTHORITY_ADMIN, system_program.key().as_ref(),  &_ido_id.to_le_bytes()], bump)]
-    pub ido_admin_account: Account<'info, AdminAccount>,
+    #[account(init_if_needed,  payer = authority,  space = 8 + 65,  
+        seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], bump)]
+    pub ido_admin_account:Box<Account<'info, AdminAccount>>,
     pub token_mint: Account<'info, Mint>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
-    pub token_account:Account<'info, TokenAccount>,
+    pub token_account: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -494,7 +598,7 @@ pub struct IdoAccount {
     pub _raise_token_decimals: u8, //1
     pub bump: u8, //1
     pub _rate: u16, //2
-    pub ido_id: u32, //4
+    pub ido_id: u64, //8
     pub _open_timestamp: i64, //4
     pub _participated_count: u32, //4
     pub _participated: u64, //8
@@ -521,7 +625,7 @@ trait IdoStrait {
         fcfs_duration: &u32,
         cap: &u64,
         release_token: &String,
-        ido_id: &u32,
+        ido_id: &u64,
         bump: &u8,
     ) -> Result<()>;
 
@@ -542,6 +646,7 @@ trait IdoStrait {
     fn fcfs_timestamp(&self) -> i64;
     fn _is_close(&self) -> bool;
     fn bump(&self) -> u8 ;
+    fn update_allocate_count(&mut self, index: &usize, count: &bool) -> Result<()>;
 
 
 }
@@ -559,7 +664,7 @@ impl IdoStrait for IdoAccount {
         fcfs_duration: &u32,
         cap: &u64,
         release_token: &String,
-        ido_id: &u32,
+        ido_id: &u64,
         bump: &u8,
     ) -> Result<()> {
         self._raise_token = Pubkey::from_str(raise_token).unwrap();
@@ -769,6 +874,24 @@ impl IdoStrait for IdoAccount {
         self.bump
     }
 
+    fn update_allocate_count(&mut self, index: &usize, remove: &bool) -> Result<()> {
+        match self._tiers.get_mut(*index) {
+            Some(tier) => {
+                if !remove {
+                    tier.allocated_count = tier.allocated_count.add(1);
+                } else {
+                    if tier.allocated_count > 0 {
+                        tier.allocated_count = tier.allocated_count.sub(1);
+                    }
+                }
+            }
+            None => {
+                return err!(IDOProgramErrors::InvalidInDex);
+            }
+        }
+        Ok(())
+    }
+
     
 }
 
@@ -823,11 +946,11 @@ pub struct TierItem {
 pub struct SetupReleaseToken<'info> {
     #[account(mut,
         constraint = ido_account.authority == admin_wallet.key(),
-        seeds = [AUTHORITY_IDO, admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump = ido_account.bump)]
+        seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump = ido_account.bump)]
     pub ido_account:  Box<Account<'info, IdoAccount>>,
     #[account( has_one = authority, 
         constraint = authority.key() == admin_wallet.authority,
-        seeds = [AUTHORITY_ADMIN, system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump = admin_wallet.bump)]
+        seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], bump = admin_wallet.bump)]
     pub admin_wallet:  Box<Account<'info, AdminAccount>>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
     pub release_token_account: Account<'info, TokenAccount>,
@@ -843,13 +966,13 @@ pub struct SetupReleaseToken<'info> {
 
 #[derive(Accounts)]
 pub struct Participate<'info> {
-    #[account(mut, seeds = [AUTHORITY_IDO, ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], bump = ido_account.bump)]
+    #[account(mut, seeds = [AUTHORITY_IDO , ido_account.ido_id.to_le_bytes().as_ref()], bump = ido_account.bump)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
 
     #[account(mut, 
         constraint = user_pda_account.allocated == true,
         constraint = user_pda_account.address == user.key(),
-        seeds = [AUTHORITY_USER, user.key().as_ref(), ido_account.key().as_ref()], bump = user_pda_account.bump)]
+        seeds = [AUTHORITY_USER,ido_account.key().as_ref(), user.key().as_ref()], bump = user_pda_account.bump)]
     pub user_pda_account: Account<'info, PdaUserStats>,
 
     #[account(mut)]
@@ -868,7 +991,7 @@ pub struct ClaimToken<'info> {
     #[account(init_if_needed,  payer = user, associated_token::mint = token_mint, associated_token::authority = user)]
     pub user_token_account: Account<'info, TokenAccount>,
    
-    #[account(mut, seeds = [AUTHORITY_IDO, ido_account.authority.key().as_ref() , &ido_account.ido_id.to_le_bytes()], 
+    #[account(mut, seeds = [AUTHORITY_IDO , ido_account.ido_id.to_le_bytes().as_ref()], 
             // guranteed to be the canonical bump every time
              bump = ido_account.bump)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
@@ -879,7 +1002,7 @@ pub struct ClaimToken<'info> {
     #[account(mut, 
         constraint = user_pda_account.allocated == true,
         constraint = user_pda_account.address == user.key(),
-        seeds = [AUTHORITY_USER, user.key().as_ref(), ido_account.key().as_ref()], bump = user_pda_account.bump)]
+        seeds = [AUTHORITY_USER, ido_account.key().as_ref(), user.key().as_ref()], bump = user_pda_account.bump)]
     pub user_pda_account: Account<'info, PdaUserStats>,
     pub release_token_pool_account: Account<'info, TokenAccount>,
 
@@ -895,12 +1018,14 @@ pub struct ClaimToken<'info> {
 pub struct AdminModifier<'info> {
     #[account(
         constraint = ido_account.authority == admin_wallet.key(),
-        seeds = [AUTHORITY_IDO, admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump = ido_account.bump)]
+        seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump = ido_account.bump)]
     pub ido_account:Box<Account<'info, IdoAccount>>,
     #[account(
         mut,
-        constraint = ido_account.key() == admin_wallet.owner,constraint = authority.key() == admin_wallet.authority,
-        has_one = authority, seeds = [AUTHORITY_ADMIN, system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump = admin_wallet.bump)]
+        constraint = ido_account.key() == admin_wallet.owner,
+        constraint = authority.key() == admin_wallet.authority,
+        has_one = authority, seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], 
+        bump = admin_wallet.bump)]
     pub admin_wallet: Account<'info, AdminAccount>,
     #[account(signer)]
     pub authority: Signer<'info>,
@@ -912,11 +1037,12 @@ pub struct AdminModifier<'info> {
 pub struct UpdateAdminIdo<'info> {
     #[account(
         constraint = ido_account.authority == admin_wallet.key(),
-        seeds = [AUTHORITY_IDO, admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump = ido_account.bump)]
+        seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump = ido_account.bump)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
     #[account( mut,
-        constraint = ido_account.key() == admin_wallet.owner,constraint = authority.key() == admin_wallet.authority,
-        has_one = authority, seeds = [AUTHORITY_ADMIN, system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump = admin_wallet.bump)]
+        constraint = ido_account.key() == admin_wallet.owner,
+        constraint = authority.key() == admin_wallet.authority,
+        has_one = authority, seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], bump = admin_wallet.bump)]
     pub admin_wallet: Account<'info, AdminAccount>,
     #[account(signer)]
     pub authority: Signer<'info>,
@@ -927,11 +1053,12 @@ pub struct UpdateAdminIdo<'info> {
 pub struct TransferNativeToken<'info> {
     #[account(mut,
         constraint = ido_account.authority == admin_wallet.key(),
-        seeds = [AUTHORITY_IDO, admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+        seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
     #[account( has_one = authority, 
-        constraint = ido_account.key() == admin_wallet.owner,constraint = authority.key() == admin_wallet.authority,
-        seeds = [AUTHORITY_ADMIN, system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+        constraint = ido_account.key() == admin_wallet.owner,
+        constraint = authority.key() == admin_wallet.authority,
+        seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], bump)]
     pub admin_wallet: Account<'info, AdminAccount>,
     #[account(mut, signer)]
     pub authority: Signer<'info>,
@@ -942,12 +1069,12 @@ pub struct TransferNativeToken<'info> {
 pub struct WithdrawTokenFromPda<'info> {
     #[account(mut,
         constraint = ido_account.authority == admin_wallet.key(),
-        seeds = [AUTHORITY_IDO, admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+        seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
     #[account( has_one = authority,
         constraint = ido_account.key() == admin_wallet.owner,constraint = authority.key() == admin_wallet.authority,
-        seeds = [AUTHORITY_ADMIN, system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
-    pub admin_wallet: Account<'info, AdminAccount>,
+        seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], bump)]
+    pub admin_wallet: Box<Account<'info, AdminAccount>>,
     #[account(mut, signer)]
     pub authority: Signer<'info>,
     // pub mint: Account<'info, Mint>,
@@ -968,15 +1095,33 @@ pub struct WithdrawTokenFromPda<'info> {
     remove: bool)]
 pub struct ModifyTierAllocatedOne<'info> {
     #[account( init_if_needed, payer = authority, space = 8+32+32+16+16+1+1, 
-        seeds = [AUTHORITY_USER, address.as_ref(), ido_account.key().as_ref()], bump)]
+        seeds = [AUTHORITY_USER, ido_account.key().as_ref(), address.as_ref()], bump)]
     pub user_ido_account: Box<Account<'info, PdaUserStats>>,
     #[account(mut,
         constraint = ido_account.authority == admin_wallet.key(),
-        seeds = [AUTHORITY_IDO, admin_wallet.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+        seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
     #[account( has_one = authority, 
-        constraint = ido_account.key() == admin_wallet.owner,constraint = authority.key() == admin_wallet.authority,
-        seeds = [AUTHORITY_ADMIN, system_program.key().as_ref(), &ido_account.ido_id.to_le_bytes()], bump)]
+        constraint = ido_account.key() == admin_wallet.owner, 
+        constraint = authority.key() == admin_wallet.authority,
+        seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], bump)]
+    pub admin_wallet: Box<Account<'info, AdminAccount>>,
+    #[account(mut, signer)]
+    pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct ModifyTierAllocatedMulti<'info> {
+
+    #[account(mut,
+        constraint = ido_account.authority == admin_wallet.key(),
+        seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump)]
+    pub ido_account: Box<Account<'info, IdoAccount>>,
+    #[account( has_one = authority, 
+        constraint = ido_account.key() == admin_wallet.owner,
+        constraint = authority.key() == admin_wallet.authority,
+        seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], bump)]
     pub admin_wallet: Account<'info, AdminAccount>,
     #[account(mut, signer)]
     pub authority: Signer<'info>,
@@ -996,6 +1141,7 @@ pub struct PdaUserStats {
 
 
 
+
 impl PdaUserStats{
     pub fn init_user_pda(&mut self, tier_index: &u8,address:&Pubkey, owner:&Pubkey, allocated: &bool, bump: &u8) -> Result<()>  {
         self.tier_index = *tier_index;
@@ -1006,7 +1152,7 @@ impl PdaUserStats{
         self.bump = *bump;
         Ok(())
     }
-    pub fn update_allocate(&mut self,tier_index: &u8, allocated:&bool){
+    pub fn update_allocate(&mut self, tier_index: &u8, allocated:&bool){
         self.tier_index = *tier_index;
         self.allocated = *allocated; 
     }
@@ -1020,6 +1166,42 @@ impl PdaUserStats{
         self.claim_amount = amount; 
         Ok(())
     }
+   
+    fn safe_deserialize(mut data: &[u8]) -> Result<Self> {
+      
+        let result =  Self::try_deserialize(&mut data)?;
+        
+        Ok(result)
+    }
+    fn from_account_info(a: &AccountInfo) -> Result<Self>where {
+        let data = &a.data.borrow_mut();
+        let ua = Self::safe_deserialize(data).map_err(|_| IDOProgramErrors::CannotParseData)?;
+        Ok(ua)
+    }
+    //try serialize data to array
+    fn try_to_vec(&self) -> Result<Vec<u8>> {
+        let mut data = vec![];
+        self.try_serialize(&mut data)?;
+        Ok(data)
+    }
+   
+    
+
+
+    fn update_allocate_as_buffer(&mut self, tier_index: &u8, allocated:&bool) -> Result<()> {
+        self.tier_index = *tier_index;
+        self.allocated = *allocated; 
+        let data =  self.try_to_vec()?;
+
+        // Copy the `data` slice to the `example_account` using `sol_memcpy`
+       
+        let mut writer = std::io::Cursor::new(data);
+
+         
+        msg!("tier_index {:}", self.tier_index);
+        Ok(())
+    }
+
 
 }
 
@@ -1071,7 +1253,9 @@ pub enum IDOProgramErrors {
     #[msg("Admin token account not match")]
     WithdrawTokenAccountNotMatch,
     #[msg("Release token account of user not match")]
-    ReleaseTokenAccountNotMatch
+    ReleaseTokenAccountNotMatch,
+    #[msg("Cannot parse data to account")]
+    CannotParseData,
 }
 
 impl From<IDOProgramErrors> for ProgramError {
@@ -1304,3 +1488,6 @@ pub struct TokenTransferParams<'a: 'b, 'b> {
     /// CHECK: account checked in CPI
     pub token_program: AccountInfo<'a>,
 }
+
+
+

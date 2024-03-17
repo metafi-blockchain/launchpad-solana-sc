@@ -759,6 +759,7 @@ dependencies = [
  "ahash 0.8.8",
  "anchor-lang",
  "anchor-spl",
+ "solana-program",
  "solana-safe-math",
  "spl-token",
 ]

@@ -11,6 +11,9 @@ use std::str::FromStr;
 
 declare_id!("A7HQd8NLQAj5DRxZUXS5vNkpUfDhnDRkHS8KhrP8eP1t");
 
+
+mod errors;
+pub use errors::*;
 #[program]
 pub mod crowdfunding {
 
@@ -174,8 +177,100 @@ pub mod crowdfunding {
         
         Ok(())
     }
-    
-    
+    pub fn modify_tier_allocated_multi(
+        ctx: Context<ModifyTierAllocatedMulti>,
+        index: u8,
+        addresses: Vec<Pubkey>,
+        remove: bool,
+    ) -> Result<()> {
+        let ido_account = &mut ctx.accounts.ido_account;
+ 
+        let remaining_accounts = &ctx.remaining_accounts;
+        msg!("remaining_accounts {}", remaining_accounts.len());
+        msg!("addresses {}", addresses.len());
+
+        require!(addresses.len() ==  remaining_accounts.len(), IDOProgramErrors::InvalidInDex);
+       
+         for (i, address) in addresses.iter().enumerate() {
+           
+            let user_pda  = &remaining_accounts[i];
+
+            let (pda, _) = Pubkey::find_program_address(
+                &[AUTHORITY_USER, ido_account.key().as_ref(),  address.as_ref(),],
+                ctx.program_id,
+            ); 
+            // require!(pda == user_pda.key(), IDOProgramErrors::InvalidInDex);
+            msg!("user_pda {}", pda);
+
+            if user_pda.data_is_empty(){
+                msg!("need create account {}", pda);
+                
+                //check account and if not exist then create new
+                // anchor_lang::solana_program::program::invoke_signed(
+                //     &anchor_lang::solana_program::system_instruction::create_account(
+                //         payer.key,
+                //         admin_account_pda.key,
+                //         Rent::get()?.minimum_balance(AdminPda2::SIZE),
+                //         AdminPda2::SIZE as u64,
+                //         self.program_id,
+                //     ),
+                //     &[
+                //         payer.clone(),
+                //         admin_account_pda.clone(),
+                //         system_program_account.clone(),
+                //     ],
+                //     &[&[ADMIN_ACCOUNT_SEED, &[bump]]],
+               
+            } else {
+
+                let _user_pda = &ctx.remaining_accounts[i];
+
+
+                // let mut user_pda = solana_program::borsh0_10::try_from_slice_unchecked::<PdaUserStats>(_user_pda.data.borrow()).unwrap();
+
+                let user_pda  = &mut PdaUserStats::from_account_info(_user_pda)?;
+                
+                user_pda.update_allocate(&index, &!remove);
+
+          
+
+                let user_pda_data = _user_pda.data.try_borrow_mut();
+
+  
+
+           
+                msg!("allocated {}", user_pda.allocated);
+                
+                // let user_pda_data: PdaUserStats = anchor_lang::prelude::AccountInfo::<'a>::deserialize_data(user_pda_data_data).unwrap();
+                
+                 // Modify the account data
+        
+                // let user_pda_info = &user_pda_info_tmp;
+
+                // user.update_allocate(&index, &remove)?;          
+            }
+        
+          
+
+
+        }
+
+
+        //update tier count
+        match ido_account._tiers.get_mut(index as usize){
+            Some(tier) =>{
+                if !remove {
+                    tier.allocated_count = tier.allocated_count.add(1);
+                }else{
+                    if tier.allocated_count > 0 {
+                        tier.allocated_count =  tier.allocated_count.sub(1);
+                    }
+                }
+            }
+            None=>{return err!(IDOProgramErrors::InvalidInDex)}
+        }
+        Ok(())
+    }
 
     pub fn setup_release_token(
         ctx: Context<SetupReleaseToken>,
@@ -552,7 +647,6 @@ trait IdoStrait {
 }
 
 impl IdoStrait for IdoAccount {
-
     fn create_ido(
         &mut self,
         admin: &Pubkey,
@@ -1011,6 +1105,23 @@ pub struct ModifyTierAllocatedOne<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(Accounts)]
+pub struct ModifyTierAllocatedMulti<'info> {
+
+    #[account(mut,
+        constraint = ido_account.authority == admin_wallet.key(),
+        seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump)]
+    pub ido_account: Box<Account<'info, IdoAccount>>,
+    #[account( has_one = authority, 
+        constraint = ido_account.key() == admin_wallet.owner,
+        constraint = authority.key() == admin_wallet.authority,
+        seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], bump)]
+    pub admin_wallet: Account<'info, AdminAccount>,
+    #[account(mut, signer)]
+    pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
 #[account]
 pub struct PdaUserStats {
     pub allocated: bool, //1
@@ -1043,6 +1154,7 @@ impl PdaUserStats{
         self.participate_amount =  self.participate_amount.safe_add(participate_amount).unwrap(); 
         Ok(())
     }
+
     pub fn user_update_claim(&mut self, claim_amount:u64)-> Result<()>{
        
         let amount = self.claim_amount.safe_add(claim_amount).unwrap();
@@ -1060,6 +1172,7 @@ impl PdaUserStats{
         let data = &a.data.borrow_mut();
         let ua = Self::safe_deserialize(data).map_err(|_| IDOProgramErrors::CannotParseData)?;
         Ok(ua)
+
     }
     //try serialize data to array
     fn try_to_vec(&self) -> Result<Vec<u8>> {
@@ -1090,7 +1203,7 @@ impl PdaUserStats{
 
 
 /**
- * Get event structure
+ *  event structure
  */
 
 #[event]
@@ -1105,47 +1218,7 @@ pub struct ClaimEvent {
     pub claim: u64,
 }
 
-#[error_code]
-pub enum IDOProgramErrors {
-    #[msg("PDA account not matched")]
-    PdaNotMatched,
-    #[msg("Only authority is allowed to call this function")]
-    NotAuthorized,
-    #[msg("Invalid round index")]
-    InvalidInDex,
-    #[msg("Invalid rounds specified")]
-    InvalidRounds,
-    #[msg("Insufficient amount to withdraw.")]
-    InsufficientAmount,
-    #[msg("Invalid tiers specified")]
-    InValidTier,
-    #[msg("Invalid release index")]
-    InvalidReleaseIndex,
-    #[msg("Release token not yet defined")]
-    InvalidReleaseToken,
-    #[msg("No tokens left in the pool")]
-    NoTokensLeft,
-    #[msg("Amount must be greater than 0")]
-    InvalidAmount,
-    #[msg("Participation not valid/open")]
-    ParticipationNotValid,
-    #[msg("Amount exceeds remaining allocation")]
-    AmountExceedsRemainingAllocation,
-    #[msg("IDO token account not match")]
-    DepositTokenAccountNotMatch,
-    #[msg("Admin token account not match")]
-    WithdrawTokenAccountNotMatch,
-    #[msg("Release token account of user not match")]
-    ReleaseTokenAccountNotMatch,
-    #[msg("Cannot parse data to account")]
-    CannotParseData,
-}
 
-impl From<IDOProgramErrors> for ProgramError {
-    fn from(e: IDOProgramErrors) -> Self {
-        ProgramError::Custom(e as u32)
-    }
-}
 
 fn _info_wallet( ido_account:&mut IdoAccount,  user_pda: &mut PdaUserStats) -> (u8, u8, u8, String, i64) {
     

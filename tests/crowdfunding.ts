@@ -87,13 +87,14 @@ describe("crowd funding testing", () => {
 
   const raise_token_test = "3uWjtg9ZRjGbSzxYx4NgDLBwdFxhPLi9aArN9tiu6m8b";
   const release_token = "Hv6634qu7ucXkaHDgcH3H5fUH1grmSNwpspYdCkSG7hK";
-  const ido_id = 1;
+  const ido_id = 3;
 
 
   let idoPDAs =  getPdaIdo(program, ido_id);
   let adminPda = getPdaAdmin(program, idoPDAs )
 
 
+  console.log("idoPDAs:", idoPDAs.toString());
 
   let raise_token  = raise_token_test
   // it("initialize Ido program", async () => {
@@ -212,24 +213,24 @@ describe("crowd funding testing", () => {
   // })
 
 
-  // it("set open timestamp", async () => {
+  it("set open timestamp", async () => {
 
 
-  //   const timestamp = convertTimeTimeTo("2024/02/21 15:15:00");
+    const timestamp = convertTimeTimeTo("2024/03/26 10:15:00");
 
-  //   await program.methods.setOpenTimestamp(timestamp).accounts({
-  //     idoAccount: idoPDAs,
-  //     adminWallet: adminPda,
-  //     authority: provider.wallet.publicKey,
-  //     systemProgram: anchor.web3.SystemProgram.programId,
-  //     }).rpc();
+    await program.methods.setOpenTimestamp(timestamp).accounts({
+      idoAccount: idoPDAs,
+      adminWallet: adminPda,
+      authority: provider.wallet.publicKey,
+      systemProgram: anchor.web3.SystemProgram.programId,
+      }).rpc();
 
 
-  //   const idoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
-  //   const _open_timestamp = idoInfo._open_timestamp;
-  //   assert.equal(idoInfo._open_timestamp, _open_timestamp, "_open_timestamp  is setup");
+    const idoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
+    const _open_timestamp = idoInfo._open_timestamp;
+    assert.equal(idoInfo._open_timestamp, _open_timestamp, "_open_timestamp  is setup");
 
-  // })
+  })
 
 
   // it("modify_rounds", async () => {
@@ -361,53 +362,53 @@ describe("crowd funding testing", () => {
     
   //  }
   // })
-  it("modify_tier_allocated_multi", async () => {
-      const add1 = "B4Sho4nv3f7kJNo33a3cmYEKCUetCm6tgHqatkcxiaA8";
-      const add2 = "Dm1sTcsXcWv71ePpNmZYQZm1oDe7KGQSKMKG5wCLr8vd";
+  // it("modify_tier_allocated_multi", async () => {
+  //     const add1 = "B4Sho4nv3f7kJNo33a3cmYEKCUetCm6tgHqatkcxiaA8";
+  //     const add2 = "Dm1sTcsXcWv71ePpNmZYQZm1oDe7KGQSKMKG5wCLr8vd";
 
-      let user1 = new PublicKey(add1)
-      let user2 = new PublicKey(add2)
-      let userPDA1 =  getPdaUser(program.programId,  idoPDAs, user1);
-      let userPDA2 =  getPdaUser(program.programId,  idoPDAs, user2);
-      const tier = 2;
+  //     let user1 = new PublicKey(add1)
+  //     let user2 = new PublicKey(add2)
+  //     let userPDA1 =  getPdaUser(program.programId,  idoPDAs, user1);
+  //     let userPDA2 =  getPdaUser(program.programId,  idoPDAs, user2);
+  //     const tier = 2;
      
-      console.log("userPDA: ", userPDA1.toString());
-      console.log("idoPDA: ", idoPDAs.toString());
+  //     console.log("userPDA: ", userPDA1.toString());
+  //     console.log("idoPDA: ", idoPDAs.toString());
      
-     const remove = true;
-     try {
-      let tx = await program.methods.modifyTierAllocatedMulti(tier,[ user1, user2], remove).accounts({
+  //    const remove = true;
+  //    try {
+  //     let tx = await program.methods.modifyTierAllocatedMulti(tier,[ user1, user2], remove).accounts({
         
-        idoAccount: idoPDAs,
-        authority: provider.wallet.publicKey,
-        adminWallet: adminPda,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      }
-      ).remainingAccounts([{
-        pubkey: userPDA1,
-        isWritable: true,
-        isSigner: false
-      },
-      {
-        pubkey: userPDA2,
-        isWritable: true,
-        isSigner: false
-      }]).rpc();
+  //       idoAccount: idoPDAs,
+  //       authority: provider.wallet.publicKey,
+  //       adminWallet: adminPda,
+  //       systemProgram: anchor.web3.SystemProgram.programId,
+  //     }
+  //     ).remainingAccounts([{
+  //       pubkey: userPDA1,
+  //       isWritable: true,
+  //       isSigner: false
+  //     },
+  //     {
+  //       pubkey: userPDA2,
+  //       isWritable: true,
+  //       isSigner: false
+  //     }]).rpc();
   
-      console.log("transaction: ", tx);
+  //     console.log("transaction: ", tx);
       
-      let userInfo = await program.account.pdaUserStats.fetch(userPDA1);
-      console.log(JSON.stringify(userInfo));
+  //     let userInfo = await program.account.pdaUserStats.fetch(userPDA1);
+  //     console.log(JSON.stringify(userInfo));
       
-      // assert.equal(userInfo.tierIndex, tier, `${user1} is add in tier ${tier}`);
+  //     // assert.equal(userInfo.tierIndex, tier, `${user1} is add in tier ${tier}`);
    
-      // assert.equal(userInfo.allocated, !remove, `address has allocated change: ${!remove}`);
-      // assert.equal(userInfo.address.toString(), user1.toString(), `${user1} is add white list`);
-     } catch (error) {
-      console.log(error);
+  //     // assert.equal(userInfo.allocated, !remove, `address has allocated change: ${!remove}`);
+  //     // assert.equal(userInfo.address.toString(), user1.toString(), `${user1} is add white list`);
+  //    } catch (error) {
+  //     console.log(error);
       
-     }
-    })
+  //    }
+  //   })
 
   // it("joinIdo", async () => {
   //   // const token_raise = "3uWjtg9ZRjGbSzxYx4NgDLBwdFxhPLi9aArN9tiu6m8b";

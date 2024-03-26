@@ -9,9 +9,7 @@ export const _getRemaining = ()=>{
 
 }
 
-export const IdoInfo = ()=>{
 
-}
 
 export const fcfsTimestamp = (idoAccount: IdoAccount): number=>{
 

@@ -1,7 +1,6 @@
-mod errors;
-mod events;
+
 mod instructions;
-mod  states;
+mod states;
 mod utils;
 
 use anchor_lang::prelude::*;
@@ -23,8 +22,7 @@ pub mod crowdfunding {
 
     use anchor_spl::associated_token::get_associated_token_address;
     use super::*;
-    pub use errors::*;
-    pub use events::*;
+  
     pub use instructions::*;
     pub use states::*;
     pub use utils::*;

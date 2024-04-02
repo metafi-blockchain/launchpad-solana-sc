@@ -11,7 +11,7 @@ pub struct IdoAccount {
     pub _release_token_decimals: u8, //1
     pub _raise_token_decimals: u8, //1
     pub bump: u8, //1
-    pub _rate: u16, //2
+    pub _rate: u32, // 6 decimal 100000
     pub ido_id: u64, //8
     pub _open_timestamp: i64, //4
     pub _participated_count: u32, //4
@@ -26,51 +26,13 @@ pub struct IdoAccount {
     pub _releases: Vec<ReleaseItem>, //4 + 12 * 10
 }
 
-// trait IdoStrait {
-//     //setter function
-//     fn create_ido(
-//         &mut self,
-//         admin: &Pubkey,
-//         raise_token: &String,
-//         decimals: &u8,
-//         rate: &u16,
-//         open_timestamp: &i64,
-//         allocation_duration: &u32,
-//         fcfs_duration: &u32,
-//         cap: &u64,
-//         release_token: &String,
-//         ido_id: &u64,
-//         bump: &u8,
-//     ) -> Result<()>;
-
-//     fn init_tier(&mut self) -> Result<()>;
-//     fn init_rounds(&mut self, allocation_duration: &u32, fcfs_duration: &u32) -> Result<()>;
-//     //admin function
-//     fn add_tier(&mut self, tier: TierItem);
-//     fn add_round(&mut self, round: RoundItem);
-//     fn set_closed(&mut self, close: &bool) -> Result<()>;
-//     fn set_cap(&mut self, cap: &u64) -> Result<()>;
-//     fn set_releases( &mut self, from_timestamps: &Vec<u32>, to_timestamps: &Vec<u32>, percents: &Vec<u16>,) -> Result<()>;
-//     fn set_release_token( &mut self, token: &Pubkey, pair: &Pubkey, token_decimals: &u8,) -> Result<()>;
-//     fn modify_round( &mut self, index: &i32, name: &String, duration_seconds: &u32, class: &RoundClass,) -> Result<()>;
-//     fn modify_rounds(&mut self, name_list: &Vec<String>, duration_list: &Vec<u32>, class_list: &Vec<RoundClass>, ) -> Result<()>;
-//     fn set_rate(&mut self, rate: &u16) -> Result<()>;
-//     fn set_open_timestamp(&mut self, open_timestamps: &i64) -> Result<()>;
-//     fn close_timestamp(&self) -> i64;
-//     fn fcfs_timestamp(&self) -> i64;
-//     fn _is_close(&self) -> bool;
-//     fn bump(&self) -> u8 ;
-//     fn update_allocate_count(&mut self, index: &usize, count: &bool) -> Result<()>;
-
-
-// }
 impl IdoAccount  {
     pub fn create_ido(
         &mut self,
         admin: &Pubkey,
         raise_token: &String,
         decimals: &u8,
-        rate: &u16,
+        rate: &u32,
         open_timestamp: &i64,
         allocation_duration: &u32,
         fcfs_duration: &u32,
@@ -165,7 +127,7 @@ impl IdoAccount  {
         Ok(())
     }
 
-    pub fn set_releases( &mut self, from_timestamps: &Vec<u32>, to_timestamps: &Vec<u32>, percents: &Vec<u16>,) -> Result<()> {
+    pub fn set_releases( &mut self, from_timestamps: &Vec<i64>, to_timestamps: &Vec<i64>, percents: &Vec<u16>,) -> Result<()> {
         self._releases = vec![];
         //get info Ido from account address
         for (i, from_timestamp) in from_timestamps.iter().enumerate() {
@@ -181,11 +143,9 @@ impl IdoAccount  {
     pub fn set_release_token(
         &mut self,
         token: &Pubkey,
-        pair: &Pubkey,
         token_decimals: &u8,
     ) -> Result<()> {
         self._release_token = *token;
-        self._release_token_pair = *pair;
         self._release_token_decimals = *token_decimals; //hardcode
         Ok(())
     }
@@ -231,7 +191,7 @@ impl IdoAccount  {
 
    
 
-    pub fn set_rate(&mut self, rate: &u16) -> Result<()> {
+    pub fn set_rate(&mut self, rate: &u32) -> Result<()> {
         self._rate = *rate;
         Ok(())
     }

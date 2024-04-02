@@ -28,7 +28,9 @@ pub enum IDOProgramErrors {
     #[msg("Amount exceeds remaining allocation")]
     AmountExceedsRemainingAllocation,
     #[msg("IDO token account not match")]
-    DepositTokenAccountNotMatch,
+    IDoTokenAccountNotMatch,
+    #[msg("User token account not match")]
+    UserTokenAccountNotMatch,
     #[msg("Admin token account not match")]
     WithdrawTokenAccountNotMatch,
     #[msg("Release token account of user not match")]

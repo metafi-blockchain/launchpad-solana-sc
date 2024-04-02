@@ -7,6 +7,7 @@ use crate::{ AdminAccount, IdoAccount, AUTHORITY_ADMIN, AUTHORITY_IDO};
 #[derive(Accounts)]
 pub struct AdminModifier<'info> {
     #[account(
+        mut,
         constraint = ido_account.authority == admin_wallet.key(),
         seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump = ido_account.bump)]
     pub ido_account:Box<Account<'info, IdoAccount>>,

@@ -11,8 +11,9 @@ pub struct SetupReleaseToken<'info> {
         seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump = ido_account.bump)]
     pub ido_account:  Box<Account<'info, IdoAccount>>,
     #[account( has_one = authority, 
+        constraint = ido_account.key() == admin_wallet.owner, 
         constraint = authority.key() == admin_wallet.authority,
-        seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], bump = admin_wallet.bump)]
+        seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], bump)]
     pub admin_wallet:  Box<Account<'info, AdminAccount>>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
     pub release_token_account: Account<'info, TokenAccount>,

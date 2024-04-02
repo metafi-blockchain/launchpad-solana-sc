@@ -12,17 +12,16 @@ pub fn _get_allocation(
     ido_account: &IdoAccount,
     user_pda: &PdaUserStats,
     release_token_account: &TokenAccount, 
-    release_token_pool: &TokenAccount,
     index: usize,
-) -> (u32, u32, u16, u64, u64, u64, u64, u8) {
+) -> (i64, i64, u16, u64, u64, u64, u64, u8) {
     match ido_account._releases.get(index) {
         Some(r) => {
-            let _rate: u16 = ido_account._rate;
+            let _rate: u32 = ido_account._rate;
             let mut status: u8 = 0;
             let mut remaining: u64 = 0;
             let percent: u16 = r.percent;
-            let from_timestamp: u32 = r.from_timestamp;
-            let to_timestamp: u32 = r.to_timestamp;
+            let from_timestamp: i64 = r.from_timestamp;
+            let to_timestamp: i64 = r.to_timestamp;
             let participated: u64 = user_pda.participate_amount;
             let raise_decimals: u8 = ido_account._raise_token_decimals;
             let release_decimals: u8 = ido_account._release_token_decimals;
@@ -49,7 +48,7 @@ pub fn _get_allocation(
 
             let mut claimable = total;
             msg!("claimable: {}",claimable);
-            let now_ts = Clock::get().unwrap().unix_timestamp as u32;
+            let now_ts = Clock::get().unwrap().unix_timestamp ;
 
             msg!("to_timestamp: {}",to_timestamp);
             msg!("from_timestamp: {}",from_timestamp);
@@ -60,9 +59,9 @@ pub fn _get_allocation(
                 true => {
                     let mut elapsed = 0;
                     if now_ts > from_timestamp {
-                        elapsed = now_ts.safe_sub(from_timestamp).unwrap();
+                        elapsed = now_ts.sub(from_timestamp);
                     }
-                    let duration = to_timestamp.safe_sub(from_timestamp).unwrap();
+                    let duration = to_timestamp.sub(from_timestamp);
                     claimable = total
                         .safe_mul(elapsed as u64)
                         .unwrap()
@@ -90,7 +89,7 @@ pub fn _get_allocation(
                         status = 2;
                     }
                     //check balance release pair token account > 0  //doing
-                    if remaining == 0 || remaining > release_token_pool.amount{
+                    if remaining == 0 {
                         status = 2;
                     }  
                 }
@@ -179,7 +178,7 @@ pub fn get_allocation_remaining(ido_account:&mut IdoAccount, user_pda: &PdaUserS
    
 
     let round_index = round.sub(1) as usize;
-    let _tier_index = tier.sub(1);
+    let _tier_index = tier;
     let rounds = ido_account._rounds.clone();
     
 
@@ -188,6 +187,7 @@ pub fn get_allocation_remaining(ido_account:&mut IdoAccount, user_pda: &PdaUserS
             Some(round) => {
                 let participated = user_pda.participate_amount;
                 let allocated = round.get_tier_allocation(_tier_index);
+                msg!("allocated: {}",allocated);
                 if participated < allocated {
                     return allocated.safe_sub(participated).unwrap();
                 }

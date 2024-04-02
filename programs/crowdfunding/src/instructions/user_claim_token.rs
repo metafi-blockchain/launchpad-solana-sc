@@ -5,15 +5,18 @@ use crate::{IdoAccount, AUTHORITY_IDO, AUTHORITY_USER, PdaUserStats};
 
 #[derive(Accounts)]
 pub struct ClaimToken<'info> {
+
     #[account(init_if_needed,  payer = user, associated_token::mint = token_mint, associated_token::authority = user)]
     pub user_token_account: Account<'info, TokenAccount>,
    
     #[account(mut, seeds = [AUTHORITY_IDO , ido_account.ido_id.to_le_bytes().as_ref()], 
-            // guranteed to be the canonical bump every time
-             bump = ido_account.bump)]
+     bump = ido_account.bump)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
 
-    #[account(mut)]
+    #[account(mut,
+        constraint = ido_account._release_token == ido_token_account.mint,
+        constraint = ido_token_account.owner == ido_account.key()
+    )]
     pub ido_token_account: Account<'info, TokenAccount>,
 
     #[account(mut, 
@@ -21,7 +24,6 @@ pub struct ClaimToken<'info> {
         constraint = user_pda_account.address == user.key(),
         seeds = [AUTHORITY_USER, ido_account.key().as_ref(), user.key().as_ref()], bump = user_pda_account.bump)]
     pub user_pda_account: Account<'info, PdaUserStats>,
-    pub release_token_pool_account: Account<'info, TokenAccount>,
 
     #[account(mut, signer)]
     pub user: Signer<'info>,

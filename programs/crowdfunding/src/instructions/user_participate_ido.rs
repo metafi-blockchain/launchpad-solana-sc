@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{ Token, TokenAccount};
-use crate::{IdoAccount, AUTHORITY_IDO, AUTHORITY_USER, PdaUserStats};
+use crate::{IdoAccount, AUTHORITY_IDO, AUTHORITY_USER, PdaUserStats, IDOProgramErrors};
 
 #[derive(Accounts)]
 pub struct Participate<'info> {
@@ -13,11 +13,16 @@ pub struct Participate<'info> {
         seeds = [AUTHORITY_USER,ido_account.key().as_ref(), user.key().as_ref()], bump = user_pda_account.bump)]
     pub user_pda_account: Account<'info, PdaUserStats>,
 
-    #[account(mut)]
-    pub deposit_token_account: Account<'info, TokenAccount>,
+    #[account(mut,
+        constraint = user_token_account.owner == user.key() @IDOProgramErrors::UserTokenAccountNotMatch,
+    )]
+    pub user_token_account: Account<'info, TokenAccount>,
     
-    #[account(mut)]
-    pub receive_token_account: Account<'info, TokenAccount>,
+    #[account(mut,
+        constraint = ido_account._raise_token == ido_token_account.mint,
+        constraint = ido_token_account.owner == ido_account.key() @IDOProgramErrors::IDoTokenAccountNotMatch,
+    )]
+    pub ido_token_account: Account<'info, TokenAccount>,
     #[account(signer)]
     pub user: Signer<'info>,
     pub token_program: Program<'info, Token>,

@@ -2,6 +2,8 @@
 mod instructions;
 mod states;
 mod utils;
+mod errors;
+mod events;
 
 use anchor_lang::prelude::*;
 use anchor_lang::AnchorDeserialize;
@@ -9,8 +11,6 @@ use anchor_lang::AnchorSerialize;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 use solana_safe_math::SafeMath;
 use std::ops::Add;
-use std::str::FromStr;
-
 
 declare_id!("A7HQd8NLQAj5DRxZUXS5vNkpUfDhnDRkHS8KhrP8eP1t");
 
@@ -22,10 +22,11 @@ pub mod crowdfunding {
 
     use anchor_spl::associated_token::get_associated_token_address;
     use super::*;
-  
     pub use instructions::*;
     pub use states::*;
     pub use utils::*;
+    pub use errors::*;
+    pub use events::*;
 
     /// Seed for tran authority seed
     pub const AUTHORITY_IDO: &[u8] = b"ido_pad";
@@ -36,7 +37,7 @@ pub mod crowdfunding {
     pub fn initialize(
         ctx: Context<InitializeIdoAccount>,
         raise_token: String,
-        rate: u16,
+        rate: u32,
         open_timestamp: i64,
         allocation_duration: u32,
         fcfs_duration: u32,
@@ -187,17 +188,15 @@ pub mod crowdfunding {
 
     pub fn setup_release_token(
         ctx: Context<SetupReleaseToken>,
-        token: String,
-        pair: String,
+        release_token: Pubkey,
     ) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
         let token_mint: &Account<'_, Mint> = &ctx.accounts.token_mint;
-        let token_pubkey = &Pubkey::from_str(&token).unwrap();
-        let pair_pubkey = &Pubkey::from_str(&pair).unwrap();
+        // let token_pubkey = &Pubkey::from_str(&token).unwrap();
+        // let pair_pubkey = &Pubkey::from_str(&pair).unwrap();
         let decimals = token_mint.decimals;
         ido_account.set_release_token(
-            token_pubkey,
-            pair_pubkey,
+            &release_token,
             &decimals,
         )?;
 
@@ -206,8 +205,8 @@ pub mod crowdfunding {
 
     pub fn setup_releases(
         ctx: Context<AdminModifier>,
-        from_timestamps: Vec<u32>,
-        to_timestamps: Vec<u32>,
+        from_timestamps: Vec<i64>,
+        to_timestamps: Vec<i64>,
         percents: Vec<u16>,
     ) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
@@ -236,7 +235,7 @@ pub mod crowdfunding {
         Ok(())
     }
 
-    pub fn set_rate(ctx: Context<AdminModifier>, rate: u16) -> Result<()> {
+    pub fn set_rate(ctx: Context<AdminModifier>, rate: u32) -> Result<()> {
         let ido_account = &mut ctx.accounts.ido_account;
         ido_account.set_rate( &rate)?;
         Ok(())
@@ -311,10 +310,6 @@ pub mod crowdfunding {
         let user_pda = &mut ctx.accounts.user_pda_account;
         let user: &Signer<'_> = &ctx.accounts.user;
 
-        let _ido_raise_token_account = get_associated_token_address(&ido_account.key(), &ido_account._raise_token);
-
-        require!(_ido_raise_token_account == ctx.accounts.deposit_token_account.key(),  IDOProgramErrors::DepositTokenAccountNotMatch);
-
         require!(amount > 0, IDOProgramErrors::InvalidAmount);
 
         let (_, round, round_state, _, _) = _info_wallet(ido_account, user_pda);
@@ -347,8 +342,8 @@ pub mod crowdfunding {
             )?;
         } else {
             
-            let destination = &ctx.accounts.receive_token_account;
-            let source = &ctx.accounts.deposit_token_account;
+            let destination = &ctx.accounts.ido_token_account;
+            let source = &ctx.accounts.user_token_account;
             let token_program = &ctx.accounts.token_program;
             let authority = &ctx.accounts.user;
 
@@ -393,7 +388,7 @@ pub mod crowdfunding {
         let ido_account = &ctx.accounts.ido_account;
         let user_pda = &mut ctx.accounts.user_pda_account;
         let ido_release_token_account = &mut ctx.accounts.ido_token_account;
-        let release_token_pool_account = &mut ctx.accounts.release_token_pool_account;
+        // let release_token_pool_account = &mut ctx.accounts.release_token_pool_account;
         
         let user_token_account = &ctx.accounts.user_token_account;
 
@@ -411,7 +406,7 @@ pub mod crowdfunding {
         }
 
         for i in 0..index {
-            let (_, _, _, _, _, _, remaining, status) = _get_allocation(&ido_account, &user_pda, ido_release_token_account, release_token_pool_account, i as usize);
+            let (_, _, _, _, _, _, remaining, status) = _get_allocation(&ido_account, &user_pda, ido_release_token_account, i as usize);
             
             if status != 1 {
                 continue;
@@ -454,21 +449,6 @@ pub mod crowdfunding {
 
 
 
-#[derive(Accounts)]
-pub struct TransferNativeToken<'info> {
-    #[account(mut,
-        constraint = ido_account.authority == admin_wallet.key(),
-        seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump)]
-    pub ido_account: Box<Account<'info, IdoAccount>>,
-    #[account( has_one = authority, 
-        constraint = ido_account.key() == admin_wallet.owner,
-        constraint = authority.key() == admin_wallet.authority,
-        seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], bump)]
-    pub admin_wallet: Account<'info, AdminAccount>,
-    #[account(mut, signer)]
-    pub authority: Signer<'info>,
-    pub system_program: Program<'info, System>,
-}
 
 
 

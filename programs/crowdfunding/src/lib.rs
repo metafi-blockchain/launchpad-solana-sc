@@ -273,8 +273,7 @@ pub mod crowdfunding {
     //transferToken
     //with draw token  only admin who create pda withdraw token
     pub fn withdraw_token_from_pda(ctx: Context<WithdrawTokenFromPda>, amount: u64) -> Result<()> {
-        //add security check
-        // check user is singer
+
         if !ctx.accounts.authority.is_signer {
             return Err(ProgramError::MissingRequiredSignature.into());
         }
@@ -426,7 +425,7 @@ pub mod crowdfunding {
                 amount: remaining,
             })?;
     
-            user_pda.user_update_claim(remaining    )?;
+            user_pda.user_claim(i,remaining)?;
             msg!("claim success ");
             //emit ClaimEvent
             emit!(ClaimEvent {

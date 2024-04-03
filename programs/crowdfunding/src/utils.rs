@@ -14,6 +14,8 @@ pub fn _get_allocation(
     release_token_account: &TokenAccount, 
     index: usize,
 ) -> (i64, i64, u16, u64, u64, u64, u64, u8) {
+
+
     match ido_account._releases.get(index) {
         Some(r) => {
             let _rate: u32 = ido_account._rate;
@@ -71,7 +73,7 @@ pub fn _get_allocation(
                 false => (),
             }
           
-            let claimed = user_pda.claim_amount;
+            let claimed = user_pda.get_amount_claim_release_round(index as u16).unwrap(/*None*/);
             msg!("claimed: {}",claimed);
             if claimed < claimable {
                 remaining = claimable.safe_sub(claimed).unwrap();

@@ -12,16 +12,19 @@ pub struct WithdrawTokenFromPda<'info> {
         seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
     #[account( has_one = authority,
-        constraint = ido_account.key() == admin_wallet.owner,constraint = authority.key() == admin_wallet.authority,
+        constraint = ido_account.key() == admin_wallet.owner,
+        constraint = authority.key() == admin_wallet.authority,
         seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], bump)]
     pub admin_wallet: Box<Account<'info, AdminAccount>>,
-    #[account(mut, signer)]
-    pub authority: Signer<'info>,
-    // pub mint: Account<'info, Mint>,
     #[account(mut)]
     pub from_ata: Account<'info, TokenAccount>,
-    #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = authority)]
+    #[account(init_if_needed,  payer = authority, 
+        associated_token::mint = token_mint, 
+        associated_token::authority = authority)]
     pub to_ata: Account<'info, TokenAccount>,
+
+    #[account(mut, signer)]
+    pub authority: Signer<'info>,
     pub token_mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,

@@ -9,7 +9,7 @@ use crate::{ AdminAccount, IdoAccount, AUTHORITY_ADMIN, AUTHORITY_IDO, AUTHORITY
     address: Pubkey,
     remove: bool)]
 pub struct ModifyTierAllocatedOne<'info> {
-    #[account( init_if_needed, payer = authority, space = 8+32+32+16+16+1+1, 
+    #[account( init_if_needed, payer = authority, space = 8+32+32+16+16+1+1+320, 
         seeds = [AUTHORITY_USER, ido_account.key().as_ref(), address.as_ref()], bump)]
     pub user_ido_account: Box<Account<'info, PdaUserStats>>,
     #[account(mut,

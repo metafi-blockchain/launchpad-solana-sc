@@ -36,3 +36,38 @@ pub struct InitializeIdoAccount<'info> {
     pub associated_token_program: Program<'info, AssociatedToken>,
     // pub program_id: UncheckedAccount<'info>,
 }
+
+
+pub fn initialize(
+    ctx: Context<InitializeIdoAccount>,
+    raise_token: String,
+    rate: u32,
+    open_timestamp: i64,
+    allocation_duration: u32,
+    fcfs_duration: u32,
+    cap: u64,
+    release_token: String,
+    ido_id: u64,
+) -> Result<()> {
+
+    let ido_account = &mut ctx.accounts.ido_account;
+    let ido_admin_account   = &mut ctx.accounts.ido_admin_account;
+    let token_mint = &ctx.accounts.token_mint;
+    ido_admin_account._init_admin_ido(ctx.accounts.authority.key, &ido_account.key(), &ctx.bumps.ido_admin_account)?;
+
+    ido_account.create_ido(
+        &ido_admin_account.key(),
+        &raise_token,
+        &token_mint.decimals,
+        &rate,
+        &open_timestamp,
+        &allocation_duration,
+        &fcfs_duration,
+        &cap,
+        &release_token,
+        &ido_id,
+        &ctx.bumps.ido_account,
+    )?;
+    msg!("Create account success!");
+    Ok(())
+}

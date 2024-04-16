@@ -17,3 +17,10 @@ pub struct UpdateAdminIdo<'info> {
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
+
+
+pub fn update_admin_ido( ctx: Context<UpdateAdminIdo>, admin_address : Pubkey)->Result<()>{
+    let admin_account = &mut ctx.accounts.admin_wallet;
+    admin_account._set_admin(&admin_address)?;
+    Ok(())
+}

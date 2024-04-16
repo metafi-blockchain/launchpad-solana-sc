@@ -24,3 +24,19 @@ pub struct SetupReleaseToken<'info> {
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
 }
+pub fn setup_release_token(
+    ctx: Context<SetupReleaseToken>,
+    release_token: Pubkey,
+) -> Result<()> {
+    let ido_account = &mut ctx.accounts.ido_account;
+    let token_mint: &Account<'_, Mint> = &ctx.accounts.token_mint;
+    // let token_pubkey = &Pubkey::from_str(&token).unwrap();
+    // let pair_pubkey = &Pubkey::from_str(&pair).unwrap();
+    let decimals = token_mint.decimals;
+    ido_account.set_release_token(
+        &release_token,
+        &decimals,
+    )?;
+
+    Ok(())
+}

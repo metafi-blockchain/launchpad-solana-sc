@@ -171,15 +171,11 @@ export const infoWallet = (idoAccount:IdoAccount, userPda: UserStraitPda, curren
 }
 
 export const infoAllocations = (idoAccount: IdoAccount)=>{
-    let allocNumberList: Array<number>[];
-    let allocAmountList: Array<number>[];
-    let allocClaimedList: Array<number>[];
-    let allocReleasedList: Array<BN>[];
-    let allocStatusList: Array<BN>[];
+  
 
     const {releases, releaseToken} = idoAccount
-    if(releaseToken != new PublicKey( "11111111111111111111111111111111")&& releases.length > 0) {
-            
+    if(releaseToken !=  PublicKey.default && releases.length > 0) {
+        
         let rows = releases.length*2;
         
   

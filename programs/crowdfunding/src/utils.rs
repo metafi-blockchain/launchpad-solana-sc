@@ -6,7 +6,8 @@ use solana_safe_math::SafeMath;
 use crate::{IdoAccount, PdaUserStats, RoundClass};
 
 
-
+const PERCENT_SCALED_DECIMALS: u64 = 10000;
+const RATE_DECIMALS : u64 = 1000000;
 
 pub fn _get_allocation(
     ido_account: &IdoAccount,
@@ -31,11 +32,11 @@ pub fn _get_allocation(
             let mut total: u64 = participated
                 .safe_mul(_rate as u64)
                 .unwrap()
-                .safe_div(1000000)
+                .safe_div(RATE_DECIMALS)
                 .unwrap()
                 .safe_mul(percent as u64)
                 .unwrap()
-                .safe_div(10000)
+                .safe_div(PERCENT_SCALED_DECIMALS)
                 .unwrap();
             msg!("total: {}",total);
             if raise_decimals > release_decimals {
@@ -51,11 +52,6 @@ pub fn _get_allocation(
             let mut claimable = total;
             msg!("claimable: {}",claimable);
             let now_ts = Clock::get().unwrap().unix_timestamp ;
-
-            msg!("to_timestamp: {}",to_timestamp);
-            msg!("from_timestamp: {}",from_timestamp);
-            msg!("now_ts: {}",now_ts);
-
 
             match (to_timestamp > from_timestamp) && (now_ts < to_timestamp)  {
                 true => {

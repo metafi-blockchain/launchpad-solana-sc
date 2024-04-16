@@ -25,3 +25,27 @@ pub struct ModifyTierAllocatedOne<'info> {
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
+
+pub fn modify_tier_allocated_one(
+    ctx: Context<ModifyTierAllocatedOne>,
+    index: u8,
+    address: Pubkey,
+    remove: bool,
+) -> Result<()> {
+    let ido_account = &mut ctx.accounts.ido_account;
+    let user_pda = &mut ctx.accounts.user_ido_account;
+
+    //get data user pda
+    if user_pda.bump != 0 && user_pda.address == address{
+        user_pda.update_allocate(&index,  &!remove);
+        ido_account.update_allocate_count( &(index as usize),  &!remove)?;
+
+    }else {
+        if !remove{
+            user_pda.init_user_pda(&index, &address, &ido_account.key(), &!remove, &ctx.bumps.user_ido_account)?;
+            ido_account.update_allocate_count( &(index as usize),  &!remove)?;
+        }
+    }
+    
+    Ok(())
+}

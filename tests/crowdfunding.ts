@@ -217,7 +217,7 @@ describe("crowd funding testing", () => {
   it("set open timestamp", async () => {
 
 
-    const timestamp = convertTimeTimeTo("2024/04/03 16:00:00");
+    const timestamp = convertTimeTimeTo("2024/04/08 14:20:00");
     console.log("timestamp", timestamp.toString() );
 
 
@@ -302,7 +302,7 @@ describe("crowd funding testing", () => {
     // let idoPDA =  getPdaIdo(program, ido_id,"ido_pad");
 
     const round_index = 0;
-    const tierAllocations = [new BN(3 * LAMPORTS_PER_SOL), new BN(4 * LAMPORTS_PER_SOL) , new BN(5 * LAMPORTS_PER_SOL)];
+    const tierAllocations = [new BN(10 * LAMPORTS_PER_SOL), new BN(6 * LAMPORTS_PER_SOL) , new BN(6 * LAMPORTS_PER_SOL)];
     // const tierAllocations = [new BN(0), new BN(0) , new BN(0)];
 
     try {
@@ -333,7 +333,7 @@ describe("crowd funding testing", () => {
     console.log(JSON.stringify(IdoInfo));
 
 
-    const add1 = "CjZ4nLk8RLmk89hhFZhJT6QNRUUcgGPqMgBMZ5x3re67";
+    const add1 = "G8e8xCUub4eS2s8QfMihLr8uhMdzkUfFPiMkqfpMoKFD";
     let user1 = new PublicKey(add1)
     let userPDA = getPdaUser(program.programId, idoPDAs, user1);
     const tier = 1;
@@ -484,43 +484,43 @@ describe("crowd funding testing", () => {
 
   // });
 
-  // it("setup_release_token", async () => {
+  it("setup_release_token", async () => {
 
-  //   const release_token = "Hv6634qu7ucXkaHDgcH3H5fUH1grmSNwpspYdCkSG7hK";
+    const release_token = "Hv6634qu7ucXkaHDgcH3H5fUH1grmSNwpspYdCkSG7hK";
 
-  //   const token_mint = new PublicKey(release_token);
+    const token_mint = new PublicKey(release_token);
 
-  //   console.log("idoPDA: ", idoPDAs.toString());
+    console.log("idoPDA: ", idoPDAs.toString());
 
-  //   try {
-  //     const releaseAtaAccount = getAssociatedTokenAddressSync(token_mint, idoPDAs, true);
+    try {
+      const releaseAtaAccount = getAssociatedTokenAddressSync(token_mint, idoPDAs, true);
 
-  //     console.log("releaseAtaAccount:", releaseAtaAccount.toString());
-  //     await program.methods.setupReleaseToken(token_mint).accounts({
-  //       idoAccount: idoPDAs,
-  //       adminWallet: adminPda,
-  //       releaseTokenAccount: releaseAtaAccount,
-  //       tokenMint: token_mint, 
-  //       authority: provider.wallet.publicKey,
-  //       tokenProgram: TOKEN_PROGRAM_ID,
-  //       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-  //       systemProgram: web3.SystemProgram.programId,
-  //     }).rpc()
+      console.log("releaseAtaAccount:", releaseAtaAccount.toString());
+      await program.methods.setupReleaseToken(token_mint).accounts({
+        idoAccount: idoPDAs,
+        adminWallet: adminPda,
+        releaseTokenAccount: releaseAtaAccount,
+        tokenMint: token_mint, 
+        authority: provider.wallet.publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: web3.SystemProgram.programId,
+      }).rpc()
 
-  //   } catch (error) {
-  //     console.log(error);
+    } catch (error) {
+      console.log(error);
 
-  //   }
+    }
 
-  //  const idoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
-  //  console.log(JSON.stringify(idoInfo));
+   const idoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
+   console.log(JSON.stringify(idoInfo));
 
 
-  //   const _releaseToken = idoInfo.releaseToken;
-  //   assert.equal(_releaseToken.toString(), release_token.toString(), "release token is token setup");
-  //   // const _releaseTokenPair = idoInfo.releaseTokenPair;
-  //   // assert.equal(_releaseTokenPair.toString(), pair_release_token.toString(), "release token pair is pair setup");
-  // });
+    const _releaseToken = idoInfo.releaseToken;
+    assert.equal(_releaseToken.toString(), release_token.toString(), "release token is token setup");
+    // const _releaseTokenPair = idoInfo.releaseTokenPair;
+    // assert.equal(_releaseTokenPair.toString(), pair_release_token.toString(), "release token pair is pair setup");
+  });
 
   
 
@@ -644,69 +644,69 @@ describe("crowd funding testing", () => {
 });
 
 // describe("crowd funding testing release", () => {
-//   it("setup_release_token", async () => {
+  it("setup_release_token", async () => {
 
-//     const release_token_mint =  new PublicKey("Hv6634qu7ucXkaHDgcH3H5fUH1grmSNwpspYdCkSG7hK");
-//     const token_account_release = getAssociatedTokenAddressSync(release_token_mint, idoPDAs, true);
-//     console.log("token_account_release", token_account_release.toString() );
-
-
-//     try {
-//       let tx = await program.methods.setupReleaseToken(release_token_mint).accounts({
-
-//         idoAccount: idoPDAs,
-//         authority: provider.wallet.publicKey,
-//         adminWallet: adminPda,
-//         releaseTokenAccount: token_account_release,
-//         tokenMint: release_token_mint,
-//         tokenProgram: TOKEN_PROGRAM_ID,
-//         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-//         systemProgram: SystemProgram.programId,
-
-//       }).rpc();
-
-//       console.log("transactions: ", tx);
-
-//       const IdoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
-//       console.log(JSON.stringify(IdoInfo));
-
-//       assert(IdoInfo.releaseToken.toString() == release_token_mint, "release token is setup");
+    const release_token_mint =  new PublicKey("Hv6634qu7ucXkaHDgcH3H5fUH1grmSNwpspYdCkSG7hK");
+    const token_account_release = getAssociatedTokenAddressSync(release_token_mint, idoPDAs, true);
+    console.log("token_account_release", token_account_release.toString() );
 
 
-//     } catch (error) {
-//       console.log(error);
+    try {
+      let tx = await program.methods.setupReleaseToken(release_token_mint).accounts({
 
-//     }
-//   })
-  // it('setup release', async () => {
+        idoAccount: idoPDAs,
+        authority: provider.wallet.publicKey,
+        adminWallet: adminPda,
+        releaseTokenAccount: token_account_release,
+        tokenMint: release_token_mint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
 
-  //   const f1 = convertTimeTimeTo("2024/04/2 16:40:00");
-  //   const t1 = convertTimeTimeTo("2024/04/2 16:45:00");
-  //   const f2 = convertTimeTimeTo("2024/04/2 20:00:00");
-  //   const t2 = convertTimeTimeTo("2024/04/30 22:00:00");
+      }).rpc();
 
-  //   const from_timestamps = [f1, f2];
-  //   const to_timestamps = [t1, t2];
-  //   const percents = [3333, 6664];
-  //   try {
-  //     let tx = await program.methods.setupReleases(from_timestamps, to_timestamps, percents).accounts({
-  //       idoAccount: idoPDAs,
-  //       authority: provider.wallet.publicKey,
-  //       adminWallet: adminPda,
-  //       systemProgram: SystemProgram.programId,
+      console.log("transactions: ", tx);
 
-  //     }).rpc();
+      const IdoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
+      console.log(JSON.stringify(IdoInfo));
 
-  //     console.log("transactions: ", tx);
+      assert(IdoInfo.releaseToken.toString() == release_token_mint, "release token is setup");
 
-  //     const IdoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
-  //     console.log(JSON.stringify(IdoInfo));
 
-  //   } catch (error) {
-  //     console.log(error);
+    } catch (error) {
+      console.log(error);
 
-  //   }
-  // })
+    }
+  })
+  it('setup release', async () => {
+
+    const f1 = convertTimeTimeTo("2024/04/4 11:40:00");
+    const t1 = convertTimeTimeTo("2024/04/4 11:40:00");
+    const f2 = convertTimeTimeTo("2024/04/4 20:00:00");
+    const t2 = convertTimeTimeTo("2024/04/30 22:00:00");
+
+    const from_timestamps = [f1, f2];
+    const to_timestamps = [t1, t2];
+    const percents = [3333, 6664];
+    try {
+      let tx = await program.methods.setupReleases(from_timestamps, to_timestamps, percents).accounts({
+        idoAccount: idoPDAs,
+        authority: provider.wallet.publicKey,
+        adminWallet: adminPda,
+        systemProgram: SystemProgram.programId,
+
+      }).rpc();
+
+      console.log("transactions: ", tx);
+
+      const IdoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
+      console.log(JSON.stringify(IdoInfo));
+
+    } catch (error) {
+      console.log(error);
+
+    }
+  })
 
 
 

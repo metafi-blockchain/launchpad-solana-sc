@@ -8,19 +8,14 @@ mod events;
 use anchor_lang::prelude::*;
 use anchor_lang::AnchorDeserialize;
 use anchor_lang::AnchorSerialize;
-use anchor_spl::token::{Mint, Token, TokenAccount};
-use solana_safe_math::SafeMath;
-use std::ops::Add;
+
 
 declare_id!("A7HQd8NLQAj5DRxZUXS5vNkpUfDhnDRkHS8KhrP8eP1t");
-
-
 
 
 #[program]
 pub mod crowdfunding {
 
-    use anchor_spl::associated_token::get_associated_token_address;
     use super::*;
     pub use instructions::*;
     pub use states::*;

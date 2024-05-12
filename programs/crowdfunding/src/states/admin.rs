@@ -17,6 +17,7 @@ impl  AdminAccount {
     pub fn _is_admin(&self, admin: &Pubkey)->bool{
         self.authority == *admin
     }
+    
     pub fn _init_admin_ido (&mut self, admin: &Pubkey,  owner: &Pubkey, bump: &u8)->Result<()>{
         self.authority =  *admin;
         self.owner = *owner;

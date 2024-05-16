@@ -76,7 +76,7 @@ pub fn participate(ctx: Context<Participate>, amount: u64) -> Result<()> {
 
         //check amount token of user
         require!(source.amount >= amount, IDOProgramErrors::InsufficientAmount);
-
+        msg!("Transfer token from user to pda");
         // Transfer tokens from uer to pda
         let cpi_accounts = anchor_spl::token::Transfer {
             from: source.to_account_info().clone(),
@@ -88,7 +88,7 @@ pub fn participate(ctx: Context<Participate>, amount: u64) -> Result<()> {
 
         anchor_spl::token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount)?;
 
-       
+        //calculate sport number for user 
         msg!("Transfer succeeded!");
     }
 

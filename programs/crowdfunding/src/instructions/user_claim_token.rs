@@ -34,7 +34,7 @@ pub struct ClaimToken<'info> {
 }
 
 
-pub fn claim(ctx: Context<ClaimToken>, index: u16) -> Result<()> {
+pub fn claim(ctx: Context<ClaimToken>, index: u8) -> Result<()> {
     let ido_account = &ctx.accounts.ido_account;
     let user_pda = &mut ctx.accounts.user_pda_account;
     let ido_release_token_account = &mut ctx.accounts.ido_token_account;
@@ -82,7 +82,8 @@ pub fn claim(ctx: Context<ClaimToken>, index: u16) -> Result<()> {
         emit!(ClaimEvent {
             index: index,
             address: user_pda.address.to_string(),
-            claim: remaining
+            claim: remaining,
+            timestamp: Clock::get()?.unix_timestamp,
         });
     }
     Ok(())

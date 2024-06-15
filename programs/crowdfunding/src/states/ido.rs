@@ -1,5 +1,5 @@
 
-use std::{ops::{Add, Sub}, str::FromStr};
+use std::ops::{Add, Sub};
 
 use anchor_lang::prelude::*;
 
@@ -30,18 +30,17 @@ impl IdoAccount  {
     pub fn create_ido(
         &mut self,
         admin: &Pubkey,
-        raise_token: &String,
+        raise_token: &Pubkey,
         decimals: &u8,
         rate: &u32,
         open_timestamp: &i64,
         allocation_duration: &u32,
         fcfs_duration: &u32,
         cap: &u64,
-        release_token: &String,
         ido_id: &u64,
         bump: &u8,
     ) -> Result<()> {
-        self._raise_token = Pubkey::from_str(raise_token).unwrap();
+        self._raise_token = raise_token.clone();
         self._raise_token_decimals = *decimals;
         self._rate = *rate;
         self._open_timestamp = *open_timestamp;
@@ -50,7 +49,7 @@ impl IdoAccount  {
         self.authority = *admin;
         self.ido_id = *ido_id;
         self.bump = *bump;
-        self._release_token = Pubkey::from_str(release_token).unwrap();   
+        self._release_token = Pubkey::default();   
         self.init_tier()?;
         self.init_rounds(allocation_duration, fcfs_duration)?;
         Ok(())

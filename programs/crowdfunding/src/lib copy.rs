@@ -151,7 +151,7 @@ pub mod crowdfunding {
         Ok(())
     }
 
-    pub fn modify_tier_allocated_one(
+    pub fn modify_tier_allocated(
         ctx: Context<ModifyTierAllocatedOne>,
         index: u8,
         address: Pubkey,

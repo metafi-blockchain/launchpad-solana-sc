@@ -10,18 +10,12 @@ use crate::{ AdminAccount, IdoAccount, InitializeIdoParam, AUTHORITY_ADMIN, AUTH
 
 #[derive(Accounts)]
 #[instruction(
-    raise_token: String,
-    rate: u32,
-    open_timestamp: i64,
-    allocation_duration: u32,
-    fcfs_duration: u32,
-    cap: u64,
-    release_token: String,
-    ido_id: u64)]
+   param: InitializeIdoParam
+)]
 pub struct InitializeIdoAccount<'info> {
     #[account(init,  
         payer = authority,  space = 8 + 2442,  
-        seeds = [AUTHORITY_IDO , ido_id.to_le_bytes().as_ref()], bump)]
+        seeds = [AUTHORITY_IDO , param.ido_id.to_le_bytes().as_ref()], bump)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
     #[account(init,  payer = authority,  space = 8 + 65,  
         seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], bump)]
@@ -31,24 +25,16 @@ pub struct InitializeIdoAccount<'info> {
     pub token_account: Box<Account<'info, TokenAccount>>,
     #[account(mut, signer)]
     pub authority: Signer<'info>,
-    pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
     // pub program_id: UncheckedAccount<'info>,
 }
 
 
-pub fn initialize(
+pub fn handle_initialize(
     ctx: Context<InitializeIdoAccount>,
     params: InitializeIdoParam
-    // raise_token: String,
-    // rate: u32,
-    // open_timestamp: i64,
-    // allocation_duration: u32,
-    // fcfs_duration: u32,
-    // cap: u64,
-    // release_token: String,
-    // ido_id: u64,
 ) -> Result<()> {
 
     let ido_account = &mut ctx.accounts.ido_account;
@@ -63,10 +49,9 @@ pub fn initialize(
         allocation_duration,
         fcfs_duration,
         cap,
-        release_token,
         ido_id,
     } = params;
-    
+
     ido_account.create_ido(
         &ido_admin_account.key(),
         &raise_token,
@@ -76,7 +61,6 @@ pub fn initialize(
         &allocation_duration,
         &fcfs_duration,
         &cap,
-        &release_token,
         &ido_id,
         &ctx.bumps.ido_account,
     )?;

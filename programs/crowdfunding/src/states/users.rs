@@ -9,9 +9,8 @@ pub struct PdaUserStats {
     pub bump: u8,                //1
     pub tier_index: u8,          //1
     pub participate_amount: u64, //16
-    pub claims: Vec<ClaimItem>,  //4 + 12 * 20*16
+    pub claims: Vec<ClaimItem>,  //4 + (12*16)
     pub address: Pubkey,         //32
-    pub owner: Pubkey,           //32
 }
 
 impl PdaUserStats {
@@ -19,13 +18,13 @@ impl PdaUserStats {
         &mut self,
         tier_index: &u8,
         address: &Pubkey,
-        owner: &Pubkey,
+        // owner: &Pubkey,
         allocated: &bool,
         bump: &u8,
     ) -> Result<()> {
         self.tier_index = *tier_index;
         self.address = *address;
-        self.owner = *owner;
+        // self.owner = *owner;
         self.tier_index = *tier_index;
         self.allocated = *allocated;
         self.bump = *bump;
@@ -43,7 +42,7 @@ impl PdaUserStats {
         Ok(())
     }
 
-    pub fn user_claim(&mut self, index: u16, claim_amount: u64) -> Result<()> {
+    pub fn user_claim(&mut self, index: u8, claim_amount: u64) -> Result<()> {
         match self.claims.get_mut(index as usize) {
             Some(c) => {
                 c.amount = c.amount.safe_add(claim_amount).unwrap();
@@ -65,7 +64,7 @@ impl PdaUserStats {
         Ok(total)
     }
 
-    pub fn get_amount_claim_release_round(&self, index: u16) -> Result<u64> {
+    pub fn get_amount_claim_release_round(&self, index: u8) -> Result<u64> {
 
         for c in self.claims.iter() {
             if c.release == index {
@@ -96,6 +95,6 @@ impl PdaUserStats {
 }
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct ClaimItem {
-    release: u16,
+    release: u8,
     amount: u64,
 }

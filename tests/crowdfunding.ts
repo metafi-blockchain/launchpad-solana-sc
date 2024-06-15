@@ -17,6 +17,7 @@ import { getAllocationRemaining } from "./ido.ultil";
 import { IdoAccount } from "./ido_type";
 import { describe } from "mocha";
 // let IDO_TEST = "ARRwPx2wrkn1MHvicoSam1tRFFkXxRKHQcqTgBBYsaut";
+
 const AUTHORITY_IDO = "ido_pad";
 const AUTHORITY_ADMIN = "admin_ido";
 const AUTHORITY_USER = "wl_ido_pad";
@@ -93,10 +94,6 @@ describe("crowd funding testing", () => {
 
 
 
-  // const idoAccountTest = new PublicKey(IDO_TEST);
-
-  // Configure the client to use the local cluster.
-
 
   console.log("idoPDAs:", idoPDAs.toString());
 
@@ -122,8 +119,17 @@ describe("crowd funding testing", () => {
     console.log("adminPda: ", adminPda.toString());
     console.log("token_mint: ",token_mint.toString());
 
+    const initIdoParams = {
+      raiseToken: new PublicKey("8xRoWyiPKGzqWPwh81HAGaytxzy6bEgN58Uh7LiHvMru"),
+      rate: rate,
+      openTimestamp: convertTimeTimeTo("2024/04/3 8:40:00"),
+      allocationDuration: 12*60*60,
+      fcfsDuration: 120*60,
+      cap: new BN(100*LAMPORTS_PER_SOL),
+      idoId: new BN(ido_id),
+    }
     try {
-      await program.methods.initialize(raise_token_test, rate, openTimestamp, allocationDuration, fcfsDuration ,cap, releaseToken, new BN(ido_id)).accounts({
+      await program.methods.initialize(initIdoParams).accounts({
         idoAccount: idoPDAs,
         idoAdminAccount: adminPda,
         authority: provider.publicKey,
@@ -326,7 +332,7 @@ describe("crowd funding testing", () => {
   });
 
 
-  it("modify_tier_allocated_one", async () => {
+  it("modify_tier_allocated", async () => {
     const IdoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
     console.log(JSON.stringify(IdoInfo));
 
@@ -339,13 +345,17 @@ describe("crowd funding testing", () => {
     console.log("userPDA: ", userPDA.toString());
     console.log("idoPDA: ", idoPDAs.toString());
 
-    const remove = false;
+    let remove = false
     try {
-      let tx = await program.methods.modifyTierAllocatedOne(tier, user1, remove).accounts({
-
+      const data = {
+        tier: tier,
+        address:  user1,
+        remove: remove,
+      }
+      let tx = await program.methods.modifyTierAllocated(data).accounts({
         idoAccount: idoPDAs,
         authority: provider.wallet.publicKey,
-        adminWallet: adminPda,
+        adminAccount: adminPda,
         systemProgram: anchor.web3.SystemProgram.programId,
         userIdoAccount: userPDA
       }).rpc();
@@ -444,43 +454,43 @@ describe("crowd funding testing", () => {
 
 
 
-  // it("modify_tiers", async () => {
-  //   let idoPDAs =  getPdaIdo(program, ido_id,"ido_pad");
-  //   const names = ["Tier 1", "Tier 2","Tier 3", "Tier 4", "Tier 5", "Tier 6"]
-  //   await program.methods.modifyTiers(names).accounts({
-  //     idoAccount: idoPDAs,
-  //     authority: provider.wallet.publicKey,
-  //     systemProgram: anchor.web3.SystemProgram.programId,
-  //   }).rpc();
-  //   const idoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
-  //   const tiers = idoInfo.tiers;
-  //     for (let i = 0; i < tiers.length; i++) {
-  //       const name = tiers[i].name;
-  //       assert.equal(name, names[i], "tier name is changed");  
-  //     }
-  // })
+  it("modify_tiers", async () => {
+    let idoPDAs =  getPdaIdo(program, ido_id);
+    const names = ["Tier 1", "Tier 2","Tier 3", "Tier 4", "Tier 5", "Tier 6"]
+    await program.methods.modifyTiers(names).accounts({
+      idoAccount: idoPDAs,
+      authority: provider.wallet.publicKey,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    }).rpc();
+    const idoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
+    const tiers = idoInfo.tiers;
+      for (let i = 0; i < tiers.length; i++) {
+        const name = tiers[i].name;
+        assert.equal(name, names[i], "tier name is changed");  
+      }
+  })
 
-  // it("modify_tier", async () => {
+  it("modify_tier", async () => {
 
-  //   const index = 0;
-  //   const name = "Lottery Winners";
+    const index = 0;
+    const name = "Lottery Winners";
 
-  //   let idoPDAs =  getPdaIdo(program, ido_id,"ido_pad");
+    let idoPDAs =  getPdaIdo(program, ido_id);
 
-  //   await program.methods.modifyTier(index, name).accounts({
-  //      idoAccount: idoPDAs,
-  //      authority: provider.wallet.publicKey,
-  //      systemProgram: anchor.web3.SystemProgram.programId,
-  //    }).rpc()
+    await program.methods.modifyTier(index, name).accounts({
+       idoAccount: idoPDAs,
+       authority: provider.wallet.publicKey,
+       systemProgram: anchor.web3.SystemProgram.programId,
+     }).rpc()
 
-  //  const idoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
-  //  const tier = idoInfo.tiers[index];
-  //   console.log(JSON.stringify(idoInfo));
+   const idoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
+   const tier = idoInfo.tiers[index];
+    console.log(JSON.stringify(idoInfo));
 
 
-  //   assert.equal(tier.name, name, "modify tier name");
+    assert.equal(tier.name, name, "modify tier name");
 
-  // });
+  });
 
   it("setup_release_token", async () => {
 
@@ -496,7 +506,7 @@ describe("crowd funding testing", () => {
       console.log("releaseAtaAccount:", releaseAtaAccount.toString());
       await program.methods.setupReleaseToken(token_mint).accounts({
         idoAccount: idoPDAs,
-        adminWallet: adminPda,
+        adminAccount: adminPda,
         releaseTokenAccount: releaseAtaAccount,
         tokenMint: token_mint, 
         authority: provider.wallet.publicKey,
@@ -526,7 +536,7 @@ describe("crowd funding testing", () => {
 
   //   const nameList = ["Test1","Test2", "Test3"]
 
-  //  await program.rpc.modifyTiers(nameList, {
+  //  await program.methods.modifyTiers(nameList, {
   //     accounts: {
   //       idoInfo: idoAccount.publicKey,
   //       user: provider.wallet.publicKey,
@@ -654,7 +664,7 @@ describe("crowd funding testing", () => {
 
         idoAccount: idoPDAs,
         authority: provider.wallet.publicKey,
-        adminWallet: adminPda,
+        adminAccount: adminPda,
         releaseTokenAccount: token_account_release,
         tokenMint: release_token_mint,
         tokenProgram: TOKEN_PROGRAM_ID,

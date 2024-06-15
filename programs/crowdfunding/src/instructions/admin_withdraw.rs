@@ -2,20 +2,20 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{ Token, TokenAccount, Mint};
 use anchor_spl::associated_token::{get_associated_token_address, AssociatedToken};
-use crate::{ AdminAccount, IDOProgramErrors, IdoAccount, TokenTransferParams, _transfer_token_from_ido, AUTHORITY_ADMIN, AUTHORITY_IDO};
+use crate::{ AdminAccount, IDOProgramErrors, IdoAccount, TokenTransferParams, WithdrawTokenEvent, _transfer_token_from_ido, AUTHORITY_ADMIN, AUTHORITY_IDO};
 
 
 #[derive(Accounts)]
 pub struct WithdrawTokenFromPda<'info> {
     #[account(mut,
-        constraint = ido_account.authority == admin_wallet.key(),
+        constraint = ido_account.authority == admin_account.key(),
         seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
     #[account( has_one = authority,
-        constraint = ido_account.key() == admin_wallet.owner,
-        constraint = authority.key() == admin_wallet.authority,
+        constraint = ido_account.key() == admin_account.owner,
+        constraint = authority.key() == admin_account.authority,
         seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], bump)]
-    pub admin_wallet: Box<Account<'info, AdminAccount>>,
+    pub admin_account: Box<Account<'info, AdminAccount>>,
     #[account(mut)]
     pub from_ata: Account<'info, TokenAccount>,
     #[account(init_if_needed,  payer = authority, 
@@ -53,7 +53,7 @@ pub fn withdraw_native_token(
     _to: Pubkey,
 ) -> Result<()> {
     let ido_account = &mut ctx.accounts.ido_account;
-    let user = &ctx.accounts.authority;
+    let authority = &ctx.accounts.authority;
 
     let rent_balance = Rent::get()?.minimum_balance(ido_account.to_account_info().data_len());
     let withdraw_amount = **ido_account.to_account_info().lamports.borrow() - rent_balance;
@@ -64,8 +64,12 @@ pub fn withdraw_native_token(
     );
 
     **ido_account.to_account_info().try_borrow_mut_lamports()? -= amount;
-    **user.to_account_info().try_borrow_mut_lamports()? += amount;
-
+    **authority.to_account_info().try_borrow_mut_lamports()? += amount;
+    emit!(WithdrawTokenEvent{
+        amount: amount,
+        timestamp: Clock::get()?.unix_timestamp,
+        address: authority.key().to_string(),
+    });
     Ok(())
 }
 
@@ -99,5 +103,16 @@ pub fn withdraw_native_token(
             authority_signer_seeds:signer,
             amount
         })?;
+                //emit fn withdrawTokenEvent
+        emit!(WithdrawTokenEvent{
+            amount: amount,
+            timestamp: Clock::get()?.unix_timestamp,
+            address: destination.key().to_string(),
+        });
         Ok(())
+
+
+
+
+
     }

@@ -69,7 +69,7 @@ pub fn _get_allocation(
                 false => (),
             }
           
-            let claimed = user_pda.get_amount_claim_release_round(index as u16).unwrap(/*None*/);
+            let claimed = user_pda.get_amount_claim_release_round(index as u8).unwrap(/*None*/);
             msg!("claimed: {}",claimed);
             if claimed < claimable {
                 remaining = claimable.safe_sub(claimed).unwrap();

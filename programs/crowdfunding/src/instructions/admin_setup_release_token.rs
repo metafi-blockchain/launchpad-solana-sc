@@ -7,14 +7,14 @@ use crate::{ AdminAccount, IdoAccount, AUTHORITY_ADMIN, AUTHORITY_IDO};
 #[derive(Accounts)]
 pub struct SetupReleaseToken<'info> {
     #[account(mut,
-        constraint = ido_account.authority == admin_wallet.key(),
+        constraint = ido_account.authority == admin_account.key(),
         seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump = ido_account.bump)]
     pub ido_account:  Box<Account<'info, IdoAccount>>,
     #[account( has_one = authority, 
-        constraint = ido_account.key() == admin_wallet.owner, 
-        constraint = authority.key() == admin_wallet.authority,
+        constraint = ido_account.key() == admin_account.owner, 
+        constraint = authority.key() == admin_account.authority,
         seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], bump)]
-    pub admin_wallet:  Box<Account<'info, AdminAccount>>,
+    pub admin_account:  Box<Account<'info, AdminAccount>>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
     pub release_token_account: Account<'info, TokenAccount>,
     #[account(mut, signer)]

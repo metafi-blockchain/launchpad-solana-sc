@@ -20,10 +20,10 @@ pub mod crowdfunding {
     use super::*;
     pub use instructions::*;
     pub use states::*;
+    pub use types::*;
     pub use utils::*;
     pub use errors::*;
     pub use events::*;
-    pub use types::*;
 
     /// Seed for tran authority seed
     pub const AUTHORITY_IDO: &[u8] = b"ido_pad";
@@ -35,7 +35,7 @@ pub mod crowdfunding {
         ctx: Context<InitializeIdoAccount>,
         params: InitializeIdoParam
     ) -> Result<()> {
-        instructions::initialize(ctx, params)
+        instructions::handle_initialize(ctx, params)
     }
 
     pub fn update_admin_ido( ctx: Context<UpdateAdminIdo>, admin_address : Pubkey)->Result<()>{
@@ -44,29 +44,23 @@ pub mod crowdfunding {
 
     pub fn modify_rounds(
         ctx: Context<AdminModifier>,
-        name_list: Vec<String>,
-        duration_list: Vec<u32>,
-        class_list: Vec<RoundClass>
+        param: ModifyRoundsParam
     ) -> Result<()> {
-        instructions::modify_rounds(ctx, name_list, duration_list, class_list)
+        instructions::handle_modify_rounds(ctx, param)
     }
 
     pub fn modify_round(
         ctx: Context<AdminModifier>,
-        index: i32,
-        name: String,
-        duration_seconds: u32,
-        class: RoundClass,
+        param: ModifyRoundParam,
     ) -> Result<()> {
-        instructions::modify_round(ctx, index, name, duration_seconds, class)
+        instructions::handle_modify_round(ctx, param)
     }
 
     pub fn modify_round_allocations(
         ctx: Context<AdminModifier>,
-        index: u8,
-        tier_allocations: Vec<u64>,
+        param: ModifyRoundAllocation
     ) -> Result<()> {
-        instructions::modify_round_allocations(ctx, index, tier_allocations)
+        instructions::handle_modify_round_allocations(ctx, param)
     }
 
     pub fn modify_tier(ctx: Context<AdminModifier>, index: u32, name: String) -> Result<()> {
@@ -77,13 +71,10 @@ pub mod crowdfunding {
         instructions::modify_tiers(ctx, name_list)
     }
 
-    pub fn modify_tier_allocated_one(
-        ctx: Context<ModifyTierAllocatedOne>,
-        index: u8,
-        address: Pubkey,
-        remove: bool,
+    pub fn modify_tier_allocated(
+        ctx: Context<ModifyTierAllocatedOne>, param: SetupUserTierAllocationParam
     ) -> Result<()> {
-        instructions::modify_tier_allocated_one(ctx, index, address, remove)
+        instructions::handle_modify_tier_allocated(ctx, param)
     }
 
     pub fn setup_release_token( ctx: Context<SetupReleaseToken>,release_token: Pubkey) -> Result<()> {
@@ -96,19 +87,19 @@ pub mod crowdfunding {
         to_timestamps: Vec<i64>,
         percents: Vec<u16>,
     ) -> Result<()> {
-        instructions::setup_releases(ctx, from_timestamps, to_timestamps, percents)
+        instructions::handle_setup_releases(ctx, from_timestamps, to_timestamps, percents)
     }
 
     pub fn set_closed(ctx: Context<AdminModifier>, close: bool) -> Result<()> {
-        instructions::set_closed(ctx, close)
+        instructions::handle_set_closed(ctx, close)
     }
 
     pub fn set_cap(ctx: Context<AdminModifier>, cap: u64) -> Result<()> {
-        instructions::set_cap(ctx, cap)
+        instructions::handle_set_cap(ctx, cap)
     }
 
     pub fn set_rate(ctx: Context<AdminModifier>, rate: u32) -> Result<()> {
-        instructions::set_rate(ctx, rate)
+        instructions::handle_set_rate(ctx, rate)
     }
     pub fn set_open_timestamp(ctx: Context<AdminModifier>, open_timestamp: i64) -> Result<()> {
         instructions::set_open_timestamp(ctx, open_timestamp)
@@ -132,24 +123,9 @@ pub mod crowdfunding {
         instructions::participate(ctx, amount)
     }
 
-    pub fn claim(ctx: Context<ClaimToken>, index: u16) -> Result<()> {
+    pub fn claim(ctx: Context<ClaimToken>, index: u8) -> Result<()> {
         instructions::claim(ctx, index)
     }
   
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

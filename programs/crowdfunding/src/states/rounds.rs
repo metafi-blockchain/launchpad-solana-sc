@@ -1,7 +1,7 @@
 
 use anchor_lang::prelude::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+#[derive(PartialEq, Eq, AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub enum RoundClass {
     Allocation,
     FcfsPrepare,

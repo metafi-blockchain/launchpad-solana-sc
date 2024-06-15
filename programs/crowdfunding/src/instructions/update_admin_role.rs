@@ -1,6 +1,6 @@
 
 use anchor_lang::prelude::*;
-use crate::{ AdminAccount, IdoAccount, AUTHORITY_ADMIN, AUTHORITY_IDO};
+use crate::{ AdminAccount, IdoAccount, SetAdminEvent, AUTHORITY_ADMIN, AUTHORITY_IDO};
 
 #[derive(Accounts)]
 pub struct UpdateAdminIdo<'info> {
@@ -22,5 +22,10 @@ pub struct UpdateAdminIdo<'info> {
 pub fn update_admin_ido( ctx: Context<UpdateAdminIdo>, admin_address : Pubkey)->Result<()>{
     let admin_account = &mut ctx.accounts.admin_wallet;
     admin_account._set_admin(&admin_address)?;
+
+    emit!(SetAdminEvent{
+        admin_address: admin_address.to_string(),
+        timestamp: Clock::get()?.unix_timestamp,
+    });
     Ok(())
 }

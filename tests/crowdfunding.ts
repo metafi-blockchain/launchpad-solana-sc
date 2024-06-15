@@ -101,117 +101,115 @@ describe("crowd funding testing", () => {
   console.log("idoPDAs:", idoPDAs.toString());
 
   let raise_token = raise_token_test
-  // it("initialize Ido program", async () => {
+  it("initialize Ido program", async () => {
 
-  //   const rate =  100000000;
-  //   const openTimestamp = convertTimeTimeTo("2024/04/3 8:40:00");
-  //   const allocationDuration =  12*60*60;
-  //   const fcfsDuration =  120*60;
+    const rate =  100000000;
+    const openTimestamp = convertTimeTimeTo("2024/04/3 8:40:00");
+    const allocationDuration =  12*60*60;
+    const fcfsDuration =  120*60;
 
-  //   const cap = new BN(100*LAMPORTS_PER_SOL);
+    const cap = new BN(100*LAMPORTS_PER_SOL);
 
-  //   const releaseToken ="DG9UcawWuzsnRpMDaY67kDn3SHbbQQnKEW4to3UQWLJC";
+    const releaseToken ="DG9UcawWuzsnRpMDaY67kDn3SHbbQQnKEW4to3UQWLJC";
 
-  //   let token_mint = new PublicKey("8xRoWyiPKGzqWPwh81HAGaytxzy6bEgN58Uh7LiHvMru")
-  //   const raiseTokenAccount =  getAssociatedTokenAddressSync(token_mint, idoPDAs, true);
-
-
-  //   console.log("associatedToken: ", raiseTokenAccount.toString());
-  //   console.log(provider.wallet.publicKey.toString());
-  //   console.log("idoPDAs: " ,idoPDAs.toString());
-  //   console.log("adminPda: ", adminPda.toString());
-  //   console.log("token_mint: ",token_mint.toString());
-
-  //   try {
-  //     await program.methods.initialize(raise_token_test, rate, openTimestamp, allocationDuration, fcfsDuration ,cap, releaseToken, new BN(ido_id)).accounts({
-  //       idoAccount: idoPDAs,
-  //       idoAdminAccount: adminPda,
-  //       authority: provider.publicKey,
-  //       tokenMint: token_mint,
-  //       tokenAccount: raiseTokenAccount,
-  //       systemProgram: anchor.web3.SystemProgram.programId,
-  //       tokenProgram: TOKEN_PROGRAM_ID,
-  //       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-  //   }).rpc() ;
-  //   } catch (error) {
-  //     console.log(error);
-
-  //   }
-
-  //   // console.log("IDO Account", idoPDAs.publicKey.toString());
-
-  //   let idoInfo = await program.account.idoAccount.fetch(idoPDAs);
-  //   let adminPdaInfo = await program.account.adminAccount.fetch(adminPda);
-  //   console.log(JSON.stringify(idoInfo));
-  //   console.log("==========");
-  //   console.log(JSON.stringify(adminPdaInfo));
+    let token_mint = new PublicKey("8xRoWyiPKGzqWPwh81HAGaytxzy6bEgN58Uh7LiHvMru")
+    const raiseTokenAccount =  getAssociatedTokenAddressSync(token_mint, idoPDAs, true);
 
 
+    console.log("associatedToken: ", raiseTokenAccount.toString());
+    console.log(provider.wallet.publicKey.toString());
+    console.log("idoPDAs: " ,idoPDAs.toString());
+    console.log("adminPda: ", adminPda.toString());
+    console.log("token_mint: ",token_mint.toString());
 
-  //   assert.equal(idoInfo.authority.toString(), adminPda.toString(), "Owner is user create ido account")
-  //   assert.equal(adminPdaInfo.authority.toString(), provider.publicKey.toString(), "Owner is user create ido account")
-  // });
+    try {
+      await program.methods.initialize(raise_token_test, rate, openTimestamp, allocationDuration, fcfsDuration ,cap, releaseToken, new BN(ido_id)).accounts({
+        idoAccount: idoPDAs,
+        idoAdminAccount: adminPda,
+        authority: provider.publicKey,
+        tokenMint: token_mint,
+        tokenAccount: raiseTokenAccount,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+    }).rpc() ;
+    } catch (error) {
+      console.log(error);
+
+    }
+
+    // console.log("IDO Account", idoPDAs.publicKey.toString());
+
+    let idoInfo = await program.account.idoAccount.fetch(idoPDAs);
+    let adminPdaInfo = await program.account.adminAccount.fetch(adminPda);
+    console.log(JSON.stringify(idoInfo));
+    console.log("==========");
+    console.log(JSON.stringify(adminPdaInfo));
 
 
 
-  // it("update_admin_ido", async () => {
-
-
-  //   const newAdmin = new PublicKey("3Mr13g5w5NFyh8GVfXMvZv2diZSMKDBASzQ2YwBNHayP");
-  //   await program.methods.updateAdminIdo(newAdmin).accounts({
-  //     idoAccount: idoPDAs,
-  //     adminWallet: adminPda,
-  //     authority: provider.wallet.publicKey,
-  //     systemProgram: anchor.web3.SystemProgram.programId,
-  //   }).rpc();
-
-  //   let adminPdaInfo = await program.account.adminAccount.fetch(adminPda);
-  //   console.log(JSON.stringify(adminPdaInfo));
+    assert.equal(idoInfo.authority.toString(), adminPda.toString(), "Owner is user create ido account")
+    assert.equal(adminPdaInfo.authority.toString(), provider.publicKey.toString(), "Owner is user create ido account")
+  });
 
 
 
-  // })
+  it("update_admin_ido", async () => {
+    const newAdmin = new PublicKey("3Mr13g5w5NFyh8GVfXMvZv2diZSMKDBASzQ2YwBNHayP");
+    await program.methods.updateAdminIdo(newAdmin).accounts({
+      idoAccount: idoPDAs,
+      adminWallet: adminPda,
+      authority: provider.wallet.publicKey,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    }).rpc();
 
-  // it("set_cap", async () => {
-  //   try {
+    let adminPdaInfo = await program.account.adminAccount.fetch(adminPda);
+    console.log(JSON.stringify(adminPdaInfo));
+
+
+
+  })
+
+  it("set_cap", async () => {
+    try {
 
 
   
-  //     const cap = new BN(100).mul(new BN(LAMPORTS_PER_SOL));
-  //     await program.methods.setCap(cap).accounts({
-  //       idoAccount: idoPDAs,
-  //       adminWallet: adminPda,
-  //       authority: provider.wallet.publicKey,
-  //       systemProgram: anchor.web3.SystemProgram.programId,
-  //     }).rpc();
+      const cap = new BN(100).mul(new BN(LAMPORTS_PER_SOL));
+      await program.methods.setCap(cap).accounts({
+        idoAccount: idoPDAs,
+        adminWallet: adminPda,
+        authority: provider.wallet.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      }).rpc();
 
-  //     const idoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
-  //     const _cap = idoInfo._cap;
-  //     assert.equal(idoInfo._cap, _cap, "cap  is setup");
-  //   } catch (error) {
-  //     console.log(error);
+      const idoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
+      const _cap = idoInfo._cap;
+      assert.equal(idoInfo._cap, _cap, "cap  is setup");
+    } catch (error) {
+      console.log(error);
 
-  //   }
-  // })
+    }
+  })
 
-  // it("set rate", async () => {
-  //   const rate = 100000000;
+  it("set rate", async () => {
+    const rate = 100000000;
 
-  //   await program.methods.setRate(rate).accounts({
-  //     idoAccount: idoPDAs,
-  //     adminWallet: adminPda,
-  //     authority: provider.wallet.publicKey,
-  //     systemProgram: anchor.web3.SystemProgram.programId,
-  //   }).rpc();
+    await program.methods.setRate(rate).accounts({
+      idoAccount: idoPDAs,
+      adminWallet: adminPda,
+      authority: provider.wallet.publicKey,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    }).rpc();
 
-  //   const idoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
-  //   console.log(JSON.stringify(idoInfo));
+    const idoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
+    console.log(JSON.stringify(idoInfo));
 
 
-  //   const _rate = idoInfo._rate;
-  //   assert.equal(idoInfo._rate, _rate, "_rate  is setup");
+    const _rate = idoInfo._rate;
+    assert.equal(idoInfo._rate, _rate, "_rate  is setup");
 
-  // })
+  })
 
 
   it("set open timestamp", async () => {
@@ -265,32 +263,32 @@ describe("crowd funding testing", () => {
     }
   });
 
-  // it("modify_round", async () => {
+  it("modify_round", async () => {
 
 
-  //   const index = 1;
-  //   const name = "Test round1";
-  //   const durationSeconds = 60;
+    const index = 1;
+    const name = "Test round1";
+    const durationSeconds = 60;
 
-  //   //check lai logic cho round class
-  //  const _class = { allocation: {} }
-  //   await program.methods.modifyRound(index, name, durationSeconds , _class).accounts({
-  //     idoAccount: idoPDAs,
-  //     adminWallet: adminPda,
-  //     authority: provider.wallet.publicKey,
-  //     systemProgram: anchor.web3.SystemProgram.programId,
-  //    }).rpc()
+    //check lai logic cho round class
+   const _class = { allocation: {} }
+    await program.methods.modifyRound(index, name, durationSeconds , _class).accounts({
+      idoAccount: idoPDAs,
+      adminWallet: adminPda,
+      authority: provider.wallet.publicKey,
+      systemProgram: anchor.web3.SystemProgram.programId,
+     }).rpc()
 
-  //  const idoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
-  //  const round = idoInfo.rounds[index];
+   const idoInfo = await getInfoIdoAccount(program, idoPDAs.toString());
+   const round = idoInfo.rounds[index];
 
 
 
-  //   assert.equal(round.name, name, "modify round name");
+    assert.equal(round.name, name, "modify round name");
 
-  //   assert.equal(round.durationSeconds, durationSeconds, "modify duration");
-  //   assert.equal(JSON.stringify(round.class), JSON.stringify(_class), "modify class");
-  // });
+    assert.equal(round.durationSeconds, durationSeconds, "modify duration");
+    assert.equal(JSON.stringify(round.class), JSON.stringify(_class), "modify class");
+  });
 
 
 

@@ -5,7 +5,7 @@ use anchor_spl::token::{Mint, Token, TokenAccount};
 use anchor_spl::associated_token::AssociatedToken;
 
 
-use crate::{ AdminAccount, IdoAccount, AUTHORITY_ADMIN, AUTHORITY_IDO};
+use crate::{ AdminAccount, IdoAccount, InitializeIdoParam, AUTHORITY_ADMIN, AUTHORITY_IDO};
 
 
 #[derive(Accounts)]
@@ -40,21 +40,33 @@ pub struct InitializeIdoAccount<'info> {
 
 pub fn initialize(
     ctx: Context<InitializeIdoAccount>,
-    raise_token: String,
-    rate: u32,
-    open_timestamp: i64,
-    allocation_duration: u32,
-    fcfs_duration: u32,
-    cap: u64,
-    release_token: String,
-    ido_id: u64,
+    params: InitializeIdoParam
+    // raise_token: String,
+    // rate: u32,
+    // open_timestamp: i64,
+    // allocation_duration: u32,
+    // fcfs_duration: u32,
+    // cap: u64,
+    // release_token: String,
+    // ido_id: u64,
 ) -> Result<()> {
 
     let ido_account = &mut ctx.accounts.ido_account;
     let ido_admin_account   = &mut ctx.accounts.ido_admin_account;
     let token_mint = &ctx.accounts.token_mint;
     ido_admin_account._init_admin_ido(ctx.accounts.authority.key, &ido_account.key(), &ctx.bumps.ido_admin_account)?;
-
+    
+    let InitializeIdoParam {
+        raise_token,
+        rate,
+        open_timestamp,
+        allocation_duration,
+        fcfs_duration,
+        cap,
+        release_token,
+        ido_id,
+    } = params;
+    
     ido_account.create_ido(
         &ido_admin_account.key(),
         &raise_token,

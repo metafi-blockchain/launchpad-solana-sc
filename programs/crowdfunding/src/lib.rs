@@ -4,6 +4,7 @@ mod states;
 mod utils;
 mod errors;
 mod events;
+mod types;
 
 use anchor_lang::prelude::*;
 use anchor_lang::AnchorDeserialize;
@@ -22,6 +23,7 @@ pub mod crowdfunding {
     pub use utils::*;
     pub use errors::*;
     pub use events::*;
+    pub use types::*;
 
     /// Seed for tran authority seed
     pub const AUTHORITY_IDO: &[u8] = b"ido_pad";
@@ -31,17 +33,9 @@ pub mod crowdfunding {
 
     pub fn initialize(
         ctx: Context<InitializeIdoAccount>,
-        raise_token: String,
-        rate: u32,
-        open_timestamp: i64,
-        allocation_duration: u32,
-        fcfs_duration: u32,
-        cap: u64,
-        release_token: String,
-        ido_id: u64,
+        params: InitializeIdoParam
     ) -> Result<()> {
-
-        instructions::initialize(ctx, raise_token, rate, open_timestamp, allocation_duration, fcfs_duration, cap, release_token, ido_id)
+        instructions::initialize(ctx, params)
     }
 
     pub fn update_admin_ido( ctx: Context<UpdateAdminIdo>, admin_address : Pubkey)->Result<()>{

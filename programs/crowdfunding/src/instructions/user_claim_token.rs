@@ -6,10 +6,14 @@ use crate::{ClaimEvent, IDOProgramErrors, IdoAccount, PdaUserStats, TokenTransfe
 #[derive(Accounts)]
 pub struct ClaimToken<'info> {
 
-    #[account(init_if_needed,  payer = user, associated_token::mint = token_mint, associated_token::authority = user)]
+    #[account(init_if_needed,  
+        payer = user, 
+        associated_token::mint = token_mint, 
+        associated_token::authority = user)]
     pub user_token_account: Account<'info, TokenAccount>,
    
-    #[account(mut, seeds = [AUTHORITY_IDO , ido_account.ido_id.to_le_bytes().as_ref()], 
+    #[account(mut, 
+     seeds = [AUTHORITY_IDO , ido_account.ido_id.to_le_bytes().as_ref()], 
      bump = ido_account.bump)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
 

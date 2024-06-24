@@ -22,12 +22,6 @@ pub struct WithdrawTokenEvent {
     pub address: String,
     pub timestamp: i64,
 }
-#[event]
-pub struct SetAdminEvent {
-
-    pub admin_address: String,
-    pub timestamp: i64,
-}
 
 
 #[event]

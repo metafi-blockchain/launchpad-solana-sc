@@ -24,7 +24,7 @@ pub struct CreateOnePad<'info> {
         seeds = [ADMIN_ROLE, authority.key().as_ref() ],
         bump,
     )]
-    pub admin_pda: Account<'info, AuthorityRole>,
+    pub admin_role_pda: Account<'info, AuthorityRole>,
     #[account(mut, signer)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -33,9 +33,9 @@ pub struct CreateOnePad<'info> {
 
 pub fn handle_initialize_onepad(ctx: Context<CreateOnePad>, operator_wallet: Pubkey) -> Result<()> {
     let onepad_pda = &mut ctx.accounts.onepad_pda;
-    let admin_pda = &mut ctx.accounts.admin_pda;
+    let admin_pda = &mut ctx.accounts.admin_role_pda;
     let authority = &ctx.accounts.authority;
     onepad_pda.initialize(&admin_pda.key(), &operator_wallet, ctx.bumps.onepad_pda)?;
-    admin_pda.initialize(authority.key, ctx.bumps.admin_pda, AuthRole::Admin)?;
+    admin_pda.initialize(authority.key, ctx.bumps.admin_role_pda, AuthRole::Admin)?;
     Ok(())
 }

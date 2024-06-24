@@ -7,15 +7,17 @@ use crate::{IDOProgramErrors, IdoAccount, ParticipateEvent, PdaUserStats, _info_
 
 #[derive(Accounts)]
 pub struct Participate<'info> {
-    #[account(mut, seeds = [AUTHORITY_IDO , ido_account.ido_id.to_le_bytes().as_ref()], bump = ido_account.bump)]
+    #[account(mut, 
+        seeds = [AUTHORITY_IDO , ido_account.ido_id.to_le_bytes().as_ref()], 
+        bump = ido_account.bump)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
 
     #[account(mut, 
         realloc = user_pda_account.get_size() + 9,
         realloc::zero = false,
         realloc::payer = user,
-        constraint = user_pda_account.allocated == true,
         constraint = user_pda_account.address == user.key(),
+        constraint = user_pda_account.allocated == true,
         seeds = [AUTHORITY_USER,ido_account.key().as_ref(), user.key().as_ref()], bump = user_pda_account.bump)]
     pub user_pda_account: Box<Account<'info, PdaUserStats>>,
 
@@ -106,11 +108,14 @@ pub struct ParticipateSol<'info> {
     pub ido_account: Box<Account<'info, IdoAccount>>,
 
     #[account(mut, 
+        realloc = user_pda_account.get_size() + 9,
+        realloc::zero = false,
+        realloc::payer = user,
         constraint = user_pda_account.allocated == true,
         constraint = user_pda_account.address == user.key(),
         seeds = [AUTHORITY_USER,ido_account.key().as_ref(), user.key().as_ref()], bump = user_pda_account.bump)]
     pub user_pda_account: Account<'info, PdaUserStats>,
-    #[account(signer)]
+    #[account(mut,signer)]
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
 }

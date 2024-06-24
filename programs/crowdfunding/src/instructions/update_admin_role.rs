@@ -19,7 +19,7 @@ pub struct UpdateAdminIdo<'info> {
 }
 
 
-pub fn update_admin_ido( ctx: Context<UpdateAdminIdo>, admin_address : Pubkey)->Result<()>{
+pub fn handle_update_admin_ido( ctx: Context<UpdateAdminIdo>, admin_address : Pubkey)->Result<()>{
     let admin_account = &mut ctx.accounts.admin_wallet;
     admin_account._set_admin(&admin_address)?;
 

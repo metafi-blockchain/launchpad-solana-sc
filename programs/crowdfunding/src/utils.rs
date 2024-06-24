@@ -7,7 +7,7 @@ use crate::{IdoAccount, PdaUserStats, RoundClass};
 
 
 const PERCENT_SCALED_DECIMALS: u64 = 10000;
-const RATE_DECIMALS : u64 = 1000000;
+const RATE_DECIMALS : u64 = 10000;
 
 pub fn _get_allocation(
     ido_account: &IdoAccount,

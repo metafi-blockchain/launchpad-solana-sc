@@ -1,7 +1,7 @@
 
 use anchor_lang::prelude::*;
 
-use crate::{ AdminAccount, IDOProgramErrors, IdoAccount, ModifyRoundAllocation, ModifyRoundParam, ModifyRoundsParam, TierItem, AUTHORITY_ADMIN, AUTHORITY_IDO};
+use crate::{ AdminAccount, IDOProgramErrors, IdoAccount, ModifyRoundAllocationParam, ModifyRoundParam, ModifyRoundsParam, ModifyTierName, SetupReleaseTokenParam, TierItem, AUTHORITY_ADMIN, AUTHORITY_IDO};
 
 
 #[derive(Accounts)]
@@ -25,12 +25,17 @@ pub struct AdminModifier<'info> {
 
 pub fn handle_setup_releases(
     ctx: Context<AdminModifier>,
-    from_timestamps: Vec<i64>,
-    to_timestamps: Vec<i64>,
-    percents: Vec<u16>,
+    param: SetupReleaseTokenParam,
 ) -> Result<()> {
     let ido_account = &mut ctx.accounts.ido_account;
-    //check size
+   
+    let SetupReleaseTokenParam {
+        from_timestamps,
+        to_timestamps,
+        percents,
+    } = param;
+    
+     //check size
     require!( from_timestamps.len() == to_timestamps.len(), IDOProgramErrors::InvalidReleaseIndex);
     require!( to_timestamps.len() == percents.len(),  IDOProgramErrors::InvalidReleaseIndex);
 
@@ -81,11 +86,15 @@ pub fn modify_tiers(ctx: Context<AdminModifier>, name_list: Vec<String>) -> Resu
     Ok(())
 }
 
-pub fn modify_tier(ctx: Context<AdminModifier>, index: u32, name: String) -> Result<()> {
+pub fn handle_modify_tier(ctx: Context<AdminModifier>, param: ModifyTierName) -> Result<()> {
     let ido_account = &mut ctx.accounts.ido_account;
 
 
-    match ido_account._tiers.get_mut(index as usize) {
+    let ModifyTierName {
+        tier_index,
+        name,
+    } = param;
+    match ido_account._tiers.get_mut(tier_index as usize) {
         Some(tier) => {
             tier.name = name;
         }
@@ -98,11 +107,11 @@ pub fn modify_tier(ctx: Context<AdminModifier>, index: u32, name: String) -> Res
 
 pub fn handle_modify_round_allocations(
     ctx: Context<AdminModifier>,
-    param: ModifyRoundAllocation
+    param: ModifyRoundAllocationParam
 ) -> Result<()> {
     let ido_account = &mut ctx.accounts.ido_account;
 
-    let ModifyRoundAllocation {
+    let ModifyRoundAllocationParam {
         round_index,
         tier_allocations,
     } = param;

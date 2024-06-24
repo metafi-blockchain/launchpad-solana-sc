@@ -39,7 +39,7 @@ pub mod crowdfunding {
     }
 
     pub fn update_admin_ido( ctx: Context<UpdateAdminIdo>, admin_address : Pubkey)->Result<()>{
-        instructions::update_admin_ido(ctx, admin_address)
+        instructions::handle_update_admin_ido(ctx, admin_address)
     }
 
     pub fn modify_rounds(
@@ -58,13 +58,13 @@ pub mod crowdfunding {
 
     pub fn modify_round_allocations(
         ctx: Context<AdminModifier>,
-        param: ModifyRoundAllocation
+        param: ModifyRoundAllocationParam
     ) -> Result<()> {
         instructions::handle_modify_round_allocations(ctx, param)
     }
 
-    pub fn modify_tier(ctx: Context<AdminModifier>, index: u32, name: String) -> Result<()> {
-        instructions::modify_tier(ctx, index, name)
+    pub fn modify_tier(ctx: Context<AdminModifier>, param: ModifyTierName) -> Result<()> {
+        instructions::handle_modify_tier(ctx, param)
     }
 
     pub fn modify_tiers(ctx: Context<AdminModifier>, name_list: Vec<String>) -> Result<()> {
@@ -83,11 +83,9 @@ pub mod crowdfunding {
 
     pub fn setup_releases(
         ctx: Context<AdminModifier>,
-        from_timestamps: Vec<i64>,
-        to_timestamps: Vec<i64>,
-        percents: Vec<u16>,
+        param: SetupReleaseTokenParam
     ) -> Result<()> {
-        instructions::handle_setup_releases(ctx, from_timestamps, to_timestamps, percents)
+        instructions::handle_setup_releases(ctx,param)
     }
 
     pub fn set_closed(ctx: Context<AdminModifier>, close: bool) -> Result<()> {
@@ -121,6 +119,9 @@ pub mod crowdfunding {
     //user join IDO
     pub fn participate(ctx: Context<Participate>, amount: u64) -> Result<()> {
         instructions::participate(ctx, amount)
+    }
+    pub fn participate_sol(ctx: Context<ParticipateSol>, amount: u64) -> Result<()> {
+        instructions::participate_sol(ctx, amount)
     }
 
     pub fn claim(ctx: Context<ClaimToken>, index: u8) -> Result<()> {

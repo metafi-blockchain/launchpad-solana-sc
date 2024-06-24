@@ -11,7 +11,7 @@ pub struct IdoAccount {
     pub _release_token_decimals: u8, //1
     pub _raise_token_decimals: u8, //1
     pub bump: u8, //1
-    pub _rate: u32, // 6 decimal 100000
+    pub _rate: u32, // 4 decimal 10000
     pub ido_id: u64, //8
     pub _open_timestamp: i64, //4
     pub _participated_count: u32, //4

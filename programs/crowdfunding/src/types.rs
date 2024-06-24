@@ -36,8 +36,22 @@ pub struct ModifyRoundParam{
     pub duration_seconds: u32,
     pub class: RoundClass,
 }
-#[derive(PartialEq, Eq, AnchorSerialize, AnchorDeserialize, Clone, Debug)]
-pub struct ModifyRoundAllocation{
+#[derive( AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+pub struct ModifyRoundAllocationParam{
     pub round_index: u8,
     pub tier_allocations: Vec<u64>,
+}
+#[derive( AnchorSerialize, AnchorDeserialize, Clone)]
+
+pub struct SetupReleaseTokenParam{
+   pub from_timestamps: Vec<i64>,
+   pub to_timestamps: Vec<i64>,
+   pub  percents: Vec<u16>,
+}
+
+#[derive( AnchorSerialize, AnchorDeserialize)]
+
+pub struct ModifyTierName{
+   pub tier_index: u32, 
+   pub name: String
 }

@@ -51,23 +51,7 @@ pub fn participate(ctx: Context<Participate>, amount: u64) -> Result<()> {
     require!( allocation_remaining >= amount, IDOProgramErrors::AmountExceedsRemainingAllocation);
 
     //if raise token is native token
-    if ido_account._raise_token == Pubkey::default() {
-        //get user lam port
-        let user_lamport = user.get_lamports();
-        //check balance
-
-        require!(user_lamport >= amount, IDOProgramErrors::InsufficientAmount);
-
-        let instruction = anchor_lang::solana_program::system_instruction::transfer(
-            user.key,
-            &ido_account.key(),
-            amount,
-        );
-        anchor_lang::solana_program::program::invoke(
-            &instruction,
-            &[user.to_account_info(), ido_account.to_account_info()],
-        )?;
-    } else {
+   
         
         let destination = &ctx.accounts.ido_token_account;
         let source = &ctx.accounts.user_token_account;
@@ -90,7 +74,80 @@ pub fn participate(ctx: Context<Participate>, amount: u64) -> Result<()> {
 
         //calculate sport number for user 
         msg!("Transfer succeeded!");
+    
+
+    //emit event transfer
+    emit!(ParticipateEvent {
+        amount: amount,
+        address: user.key.to_string(),
+    });
+
+    //update participated of contract
+    ido_account._participated = ido_account._participated.safe_add(amount)?;
+
+    if user_pda.participate_amount == 0 {
+       
+        ido_account._participated_count  = ido_account._participated_count.add(1);
     }
+
+    user_pda.user_update_participate(amount)?;
+
+    Ok(())
+}
+
+
+
+#[derive(Accounts)]
+pub struct ParticipateSol<'info> {
+    #[account(mut, seeds = [AUTHORITY_IDO , ido_account.ido_id.to_le_bytes().as_ref()], bump = ido_account.bump)]
+    pub ido_account: Box<Account<'info, IdoAccount>>,
+
+    #[account(mut, 
+        constraint = user_pda_account.allocated == true,
+        constraint = user_pda_account.address == user.key(),
+        seeds = [AUTHORITY_USER,ido_account.key().as_ref(), user.key().as_ref()], bump = user_pda_account.bump)]
+    pub user_pda_account: Account<'info, PdaUserStats>,
+    #[account(signer)]
+    pub user: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+pub fn participate_sol(ctx: Context<ParticipateSol>, amount: u64) -> Result<()> {
+    let ido_account = &mut ctx.accounts.ido_account;
+    let user_pda = &mut ctx.accounts.user_pda_account;
+    let user: &Signer<'_> = &ctx.accounts.user;
+
+    require!(amount > 0, IDOProgramErrors::InvalidAmount);
+
+    let (_, round, round_state, _, _) = _info_wallet(ido_account, user_pda);
+    msg!("round_state: {}", round_state);
+
+    require!( round_state == 1 || round_state == 3, IDOProgramErrors::ParticipationNotValid);
+
+    let allocation_remaining = get_allocation_remaining(ido_account, user_pda, &round);
+    msg!("allocation_remaining {}", allocation_remaining);
+
+    //check allocation remaining
+    require!( allocation_remaining >= amount, IDOProgramErrors::AmountExceedsRemainingAllocation);
+
+    //if raise token is native token
+ 
+    //get user lam port
+    let user_lamport = user.get_lamports();
+    //check balance
+
+    require!(user_lamport >= amount, IDOProgramErrors::InsufficientAmount);
+
+    let instruction = anchor_lang::solana_program::system_instruction::transfer(
+        user.key,
+        &ido_account.key(),
+        amount,
+    );
+    anchor_lang::solana_program::program::invoke(
+        &instruction,
+        &[user.to_account_info(), ido_account.to_account_info()],
+    )?;
+    
 
     //emit event transfer
     emit!(ParticipateEvent {

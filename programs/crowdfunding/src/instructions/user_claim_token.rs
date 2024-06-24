@@ -20,6 +20,9 @@ pub struct ClaimToken<'info> {
     pub ido_token_account: Account<'info, TokenAccount>,
 
     #[account(mut, 
+        realloc = user_pda_account.get_size() + 9,
+        realloc::zero = false,
+        realloc::payer = user,
         constraint = user_pda_account.allocated == true,
         constraint = user_pda_account.address == user.key(),
         seeds = [AUTHORITY_USER, ido_account.key().as_ref(), user.key().as_ref()], bump = user_pda_account.bump)]

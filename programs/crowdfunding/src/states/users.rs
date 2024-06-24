@@ -8,8 +8,8 @@ pub struct PdaUserStats {
     pub allocated: bool,         //1
     pub bump: u8,                //1
     pub tier_index: u8,          //1
-    pub participate: Vec<ParticipateItem>, //4 +16*3
-    pub claims: Vec<ClaimItem>,  //4 + (12*16)
+    pub participate: Vec<ParticipateItem>, //4 + 9
+    pub claims: Vec<ClaimItem>,  //4 + 9
     pub address: Pubkey,         //32
 }
 
@@ -99,6 +99,11 @@ impl PdaUserStats {
         }
         Ok(0) 
     }
+
+
+    pub fn get_size(&self)-> usize{
+        return 8 + 32 + 1 + 1 + 1 + 4 + self.participate.len() * 9 + 4 + self.claims.len() * 9;
+    }
    
 
     pub fn safe_deserialize(mut data: &[u8]) -> Result<Self> {
@@ -116,11 +121,11 @@ impl PdaUserStats {
 }
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct ClaimItem {
-    release: u8,
-    amount: u64,
+    release: u8, //1
+    amount: u64, //8
 }
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct ParticipateItem {
-    round: u8,
-    amount: u64,
+    round: u8, //
+    amount: u64, //8
 }

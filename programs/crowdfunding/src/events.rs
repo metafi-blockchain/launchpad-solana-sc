@@ -28,3 +28,11 @@ pub struct SetAdminEvent {
     pub admin_address: String,
     pub timestamp: i64,
 }
+
+
+#[event]
+pub struct ChangeOperatorWalletEvent {
+    pub admin: Pubkey,
+    pub operator_wallet: Pubkey,
+    pub time: i64,
+}

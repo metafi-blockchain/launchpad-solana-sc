@@ -11,10 +11,13 @@ pub struct Participate<'info> {
     pub ido_account: Box<Account<'info, IdoAccount>>,
 
     #[account(mut, 
+        realloc = user_pda_account.get_size() + 9,
+        realloc::zero = false,
+        realloc::payer = user,
         constraint = user_pda_account.allocated == true,
         constraint = user_pda_account.address == user.key(),
         seeds = [AUTHORITY_USER,ido_account.key().as_ref(), user.key().as_ref()], bump = user_pda_account.bump)]
-    pub user_pda_account: Account<'info, PdaUserStats>,
+    pub user_pda_account: Box<Account<'info, PdaUserStats>>,
 
     #[account(mut,
         constraint = user_token_account.owner == user.key() @IDOProgramErrors::UserTokenAccountNotMatch,
@@ -26,7 +29,7 @@ pub struct Participate<'info> {
         constraint = ido_token_account.owner == ido_account.key() @IDOProgramErrors::IDoTokenAccountNotMatch,
     )]
     pub ido_token_account: Account<'info, TokenAccount>,
-    #[account(signer)]
+    #[account(mut, signer)]
     pub user: Signer<'info>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,

@@ -18,7 +18,6 @@ pub struct IdoAccount {
     pub _participated: u64, //8
     pub _cap: u64, //8
     pub _release_token: Pubkey, //32
-    pub _release_token_pair: Pubkey, //32
     pub _raise_token: Pubkey, //32
     pub authority: Pubkey, //32
     pub _tiers: Vec<TierItem>, //4 +(4+ 32 + 2) * 10 

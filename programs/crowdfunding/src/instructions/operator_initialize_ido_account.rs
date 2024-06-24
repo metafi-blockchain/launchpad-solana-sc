@@ -5,7 +5,7 @@ use anchor_spl::token::{Mint, Token, TokenAccount};
 use anchor_spl::associated_token::AssociatedToken;
 
 
-use crate::{ AdminAccount, IdoAccount, InitializeIdoParam, AUTHORITY_ADMIN, AUTHORITY_IDO};
+use crate::{ AuthRole, AuthorityRole, IDOProgramErrors, IdoAccount, InitializeIdoParam, OnePad, AUTHORITY_IDO, ONEPAD, OPERATOR_ROLE};
 
 
 #[derive(Accounts)]
@@ -13,13 +13,23 @@ use crate::{ AdminAccount, IdoAccount, InitializeIdoParam, AUTHORITY_ADMIN, AUTH
    param: InitializeIdoParam
 )]
 pub struct InitializeIdoAccount<'info> {
+
+    #[account(
+        seeds = [ONEPAD],
+        bump = onepad_pda.bump,
+        constraint = onepad_pda.has_operator(operator_pda.key())@ IDOProgramErrors::OnlyOperatorAllowed,
+    )]
+    pub onepad_pda: Box<Account<'info, OnePad>>,
     #[account(init,  
         payer = authority,  space = 8 + 2442,  
         seeds = [AUTHORITY_IDO , param.ido_id.to_le_bytes().as_ref()], bump)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
-    #[account(init,  payer = authority,  space = 8 + 65,  
-        seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], bump)]
-    pub ido_admin_account:Box<Account<'info, AdminAccount>>,
+    #[account(
+        seeds = [OPERATOR_ROLE, authority.key().as_ref()],
+        bump = operator_pda.bump,
+        constraint = operator_pda.has_authority(authority.key(), AuthRole::Operator ) == true @ IDOProgramErrors::OnlyOperatorAllowed,
+    )]
+    pub operator_pda: Account<'info, AuthorityRole>,
     pub token_mint: Account<'info, Mint>,
     #[account(init_if_needed,  payer = authority, associated_token::mint = token_mint, associated_token::authority = ido_account)]
     pub token_account: Box<Account<'info, TokenAccount>>,
@@ -28,19 +38,17 @@ pub struct InitializeIdoAccount<'info> {
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
-    // pub program_id: UncheckedAccount<'info>,
 }
 
 
-pub fn handle_initialize(
+pub fn handle_initialize_ido(
     ctx: Context<InitializeIdoAccount>,
     params: InitializeIdoParam
 ) -> Result<()> {
 
     let ido_account = &mut ctx.accounts.ido_account;
-    let ido_admin_account   = &mut ctx.accounts.ido_admin_account;
     let token_mint = &ctx.accounts.token_mint;
-    ido_admin_account._init_admin_ido(ctx.accounts.authority.key, &ido_account.key(), &ctx.bumps.ido_admin_account)?;
+    let operator_pda = &ctx.accounts.operator_pda;
     
     let InitializeIdoParam {
         raise_token,
@@ -53,7 +61,7 @@ pub fn handle_initialize(
     } = params;
 
     ido_account.create_ido(
-        &ido_admin_account.key(),
+        &operator_pda.key(),
         &raise_token,
         &token_mint.decimals,
         &rate,

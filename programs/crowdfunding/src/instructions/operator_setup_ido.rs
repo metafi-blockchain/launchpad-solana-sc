@@ -1,23 +1,23 @@
 
 use anchor_lang::prelude::*;
 
-use crate::{ AdminAccount, IDOProgramErrors, IdoAccount, ModifyRoundAllocationParam, ModifyRoundParam, ModifyRoundsParam, ModifyTierName, SetupReleaseTokenParam, TierItem, AUTHORITY_ADMIN, AUTHORITY_IDO};
+use crate::{ AuthRole, AuthorityRole, IDOProgramErrors, IdoAccount, ModifyRoundAllocationParam, ModifyRoundParam, ModifyRoundsParam, ModifyTierName, SetupReleaseTokenParam, TierItem};
 
+use crate::{ AUTHORITY_IDO, OPERATOR_ROLE};
 
 #[derive(Accounts)]
 pub struct AdminModifier<'info> {
     #[account(
         mut,
-        constraint = ido_account.authority == admin_wallet.key(),
+        constraint = ido_account.authority == operator_pda.key(),
         seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump = ido_account.bump)]
     pub ido_account:Box<Account<'info, IdoAccount>>,
     #[account(
-        mut,
-        constraint = ido_account.key() == admin_wallet.owner,
-        constraint = authority.key() == admin_wallet.authority,
-        has_one = authority, seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], 
-        bump = admin_wallet.bump)]
-    pub admin_wallet: Account<'info, AdminAccount>,
+        seeds = [OPERATOR_ROLE, authority.key().as_ref()],
+        bump = operator_pda.bump,
+        constraint = operator_pda.has_authority(authority.key(), AuthRole::Operator ) == true @ IDOProgramErrors::OnlyOperatorAllowed,
+    )]
+    pub operator_pda: Account<'info, AuthorityRole>,
     #[account(signer)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,

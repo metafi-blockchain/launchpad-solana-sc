@@ -1,24 +1,25 @@
 use anchor_lang::prelude::*;
 
-use crate::{ types::SetupUserTierAllocationParam, AdminAccount, IdoAccount, PdaUserStats, AUTHORITY_ADMIN, AUTHORITY_IDO, AUTHORITY_USER};
+use crate::{ types::SetupUserTierAllocationParam, AuthRole, AuthorityRole, IDOProgramErrors, IdoAccount, PdaUserStats, AUTHORITY_IDO, AUTHORITY_USER, OPERATOR_ROLE};
 
 
 #[derive(Accounts)]
 #[instruction(
     params: SetupUserTierAllocationParam)]
 pub struct ModifyTierAllocatedOne<'info> {
-    #[account( init_if_needed, payer = authority, space = 8 + 256, 
+    #[account( init_if_needed, payer = authority, space = 8 + 61, 
         seeds = [AUTHORITY_USER, ido_account.key().as_ref(), params.address.as_ref()], bump)]
     pub user_ido_account: Box<Account<'info, PdaUserStats>>,
     #[account(mut,
-        constraint = ido_account.authority == admin_account.key(),
+        constraint = ido_account.authority == operator_pda.key(),
         seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
-    #[account( has_one = authority, 
-        constraint = ido_account.key() == admin_account.owner, 
-        constraint = authority.key() == admin_account.authority,
-        seeds = [AUTHORITY_ADMIN, ido_account.key().as_ref()], bump)]
-    pub admin_account: Box<Account<'info, AdminAccount>>,
+    #[account(
+        seeds = [OPERATOR_ROLE, authority.key().as_ref()],
+        bump = operator_pda.bump,
+        constraint = operator_pda.has_authority(authority.key(), AuthRole::Operator ) == true @ IDOProgramErrors::OnlyOperatorAllowed,
+    )]
+    pub operator_pda: Account<'info, AuthorityRole>,
     #[account(mut, signer)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,

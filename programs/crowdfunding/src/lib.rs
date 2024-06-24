@@ -5,7 +5,7 @@ mod utils;
 mod errors;
 mod events;
 mod types;
-
+pub mod constants;
 use anchor_lang::prelude::*;
 use anchor_lang::AnchorDeserialize;
 use anchor_lang::AnchorSerialize;
@@ -24,23 +24,37 @@ pub mod crowdfunding {
     pub use utils::*;
     pub use errors::*;
     pub use events::*;
-
-    /// Seed for tran authority seed
-    pub const AUTHORITY_IDO: &[u8] = b"ido_pad";
-    pub const AUTHORITY_ADMIN: &[u8] = b"admin_ido";
-    pub const AUTHORITY_USER: &[u8] = b"wl_ido_pad";
+    pub use constants::*;
 
 
-    pub fn initialize(
+
+
+    pub fn initialize_onepad(
+        ctx: Context<CreateOnePad>,
+        operater_wallet: Pubkey
+    ) -> Result<()> {
+        instructions::handle_initialize_onepad(ctx, operater_wallet)
+    }
+
+    pub fn initialize_ido(
         ctx: Context<InitializeIdoAccount>,
         params: InitializeIdoParam
     ) -> Result<()> {
-        instructions::handle_initialize(ctx, params)
+        instructions::handle_initialize_ido(ctx, params)
+    }
+    pub fn admin_add_operator( ctx: Context<AddOperator>, new_operator: Pubkey) -> Result<()> {
+        instructions::handle_add_operator(ctx, new_operator)
+    }
+    pub fn admin_remove_operator( ctx: Context<RemoveOperator>, old_operator: Pubkey) -> Result<()> {
+        instructions::handle_remove_operator(ctx, old_operator)
     }
 
-    pub fn update_admin_ido( ctx: Context<UpdateAdminIdo>, admin_address : Pubkey)->Result<()>{
-        instructions::handle_update_admin_ido(ctx, admin_address)
+    pub fn admin_change_operator_wallet( ctx: Context<SetUpOperatorWallet>, new_operator_wallet: Pubkey) -> Result<()> {
+        instructions::handle_change_operator_wallet(ctx, new_operator_wallet)
     }
+
+
+
 
     pub fn modify_rounds(
         ctx: Context<AdminModifier>,

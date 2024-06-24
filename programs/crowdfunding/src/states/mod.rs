@@ -1,5 +1,4 @@
 mod ido;
-mod admin;
 mod rounds;
 mod releases;
 mod tiers;
@@ -8,7 +7,6 @@ mod authority_role;
 mod onepad_config;
 
 pub use ido::*;
-pub use admin::*;
 pub use rounds::*;
 pub use releases::*;
 pub use tiers::*;

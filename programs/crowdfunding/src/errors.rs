@@ -38,6 +38,13 @@ pub enum IDOProgramErrors {
     #[msg("Cannot parse data to account")]
     CannotParseData,
 
+    #[msg("Only Admin Allowed")]
+    OnlyAdminAllowed,
+    #[msg("Only Operator Allowed")]
+    OnlyOperatorAllowed,
+    #[msg("Operator Not Found")]
+    OperatorNotFound,
+
     #[msg("Operator Already Exist")]
     OperatorAlreadyExist,
 
@@ -49,6 +56,12 @@ pub enum IDOProgramErrors {
 
     #[msg("Admin Already Exist")]
     AdminAlreadyExist,
+
+    #[msg("Operator wallet same as new wallet")]
+    OperatorWalletSameAsNewWallet,
+
+    #[msg("Address Zero")]
+    AddressZero,
 
 }
 

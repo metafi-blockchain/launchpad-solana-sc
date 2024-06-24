@@ -56,7 +56,7 @@ pub fn claim(ctx: Context<ClaimToken>, index: u8) -> Result<()> {
     }
 
     for i in 0..index {
-        let (_, _, _, _, _, _, remaining, status) = _get_allocation(&ido_account, &user_pda, ido_release_token_account, i as usize);
+        let (_, _, _, _, _, _, remaining, status) = _get_allocation(ido_account, user_pda, ido_release_token_account, i as usize);
         
         if status != 1 {
             continue;

@@ -25,7 +25,7 @@ pub fn _get_allocation(
             let percent: u16 = r.percent;
             let from_timestamp: i64 = r.from_timestamp;
             let to_timestamp: i64 = r.to_timestamp;
-            let participated: u64 = user_pda.participate_amount;
+            let participated: u64 = user_pda.get_total_participate().unwrap();
             let raise_decimals: u8 = ido_account._raise_token_decimals;
             let release_decimals: u8 = ido_account._release_token_decimals;
             msg!("participated: {}",participated);
@@ -183,7 +183,7 @@ pub fn get_allocation_remaining(ido_account:&mut IdoAccount, user_pda: &PdaUserS
     if user_pda.allocated {
         match rounds.get(round_index) {
             Some(round) => {
-                let participated = user_pda.participate_amount;
+                let participated = user_pda.get_amount_participate_round(round_index as u8).unwrap();
                 let allocated = round.get_tier_allocation(_tier_index);
                 msg!("allocated: {}",allocated);
                 if participated < allocated {

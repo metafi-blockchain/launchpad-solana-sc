@@ -37,6 +37,19 @@ pub enum IDOProgramErrors {
     ReleaseTokenAccountNotMatch,
     #[msg("Cannot parse data to account")]
     CannotParseData,
+
+    #[msg("Operator Already Exist")]
+    OperatorAlreadyExist,
+
+    #[msg("Admin Limit Reached")]
+    AdminLimitReached,
+
+    #[msg("Operator Limit Reached")]
+    OperatorLimitReached,
+
+    #[msg("Admin Already Exist")]
+    AdminAlreadyExist,
+
 }
 
 impl From<IDOProgramErrors> for ProgramError {

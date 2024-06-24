@@ -85,12 +85,12 @@ pub fn participate(ctx: Context<Participate>, amount: u64) -> Result<()> {
     //update participated of contract
     ido_account._participated = ido_account._participated.safe_add(amount)?;
 
-    if user_pda.participate_amount == 0 {
+    if user_pda.get_total_participate().unwrap() == 0 {
        
         ido_account._participated_count  = ido_account._participated_count.add(1);
     }
 
-    user_pda.user_update_participate(amount)?;
+    user_pda.user_participate(round, amount)?;
 
     Ok(())
 }
@@ -158,12 +158,12 @@ pub fn participate_sol(ctx: Context<ParticipateSol>, amount: u64) -> Result<()> 
     //update participated of contract
     ido_account._participated = ido_account._participated.safe_add(amount)?;
 
-    if user_pda.participate_amount == 0 {
+    if user_pda.get_total_participate().unwrap() == 0 {
        
         ido_account._participated_count  = ido_account._participated_count.add(1);
     }
 
-    user_pda.user_update_participate(amount)?;
+    user_pda.user_participate(round,amount)?;
 
     Ok(())
 }

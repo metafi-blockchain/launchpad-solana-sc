@@ -4,6 +4,11 @@ use anchor_lang::prelude::*;
 use crate::RoundClass;
 
 #[derive(PartialEq, Eq, AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+pub enum AuthRole {
+    Admin,
+    Operator,
+}
+#[derive(PartialEq, Eq, AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct InitializeIdoParam {
     pub ido_id: u64,
     pub raise_token: Pubkey,

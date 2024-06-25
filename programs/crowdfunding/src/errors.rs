@@ -7,8 +7,7 @@ pub enum IDOProgramErrors {
     PdaNotMatched,
     #[msg("Only authority is allowed to call this function")]
     NotAuthorized,
-    #[msg("Invalid round index")]
-    InvalidInDex,
+
     #[msg("Invalid rounds specified")]
     InvalidRounds,
     #[msg("Insufficient amount to withdraw.")]

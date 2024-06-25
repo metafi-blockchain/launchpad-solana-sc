@@ -30,8 +30,13 @@ pub fn handle_modify_tier_allocated(
     params: SetupUserTierAllocationParam) -> Result<()> {
     let ido_account = &mut ctx.accounts.ido_account;
     let user_pda = &mut ctx.accounts.user_ido_account;
+    
+        
+    let SetupUserTierAllocationParam { tier ,  address, remove,} = params;
+    let tiers_len = ido_account._tiers.len() as u8;
 
-    let SetupUserTierAllocationParam { tier,  address, remove,} = params;
+
+    require!(tier < tiers_len, IDOProgramErrors::InValidTier);
     //get data user pda
     if user_pda.bump != 0 && user_pda.address == address{
         user_pda.update_allocate(&tier,  &!remove);

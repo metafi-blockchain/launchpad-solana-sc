@@ -99,7 +99,7 @@ pub fn handle_modify_tier(ctx: Context<AdminModifier>, param: ModifyTierName) ->
             tier.name = name;
         }
         None => {
-            return err!(IDOProgramErrors::InvalidInDex);
+            return err!(IDOProgramErrors::InValidTier);
         }
     }
     Ok(())
@@ -122,7 +122,7 @@ pub fn handle_modify_round_allocations(
            r.set_tier_allocation(tier_allocations)?;
         }
         None => {
-            return err!(IDOProgramErrors::InvalidInDex);
+            return err!(IDOProgramErrors::InvalidRounds);
         }
     }
 

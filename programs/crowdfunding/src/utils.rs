@@ -117,7 +117,7 @@ pub fn _info_wallet( ido_account:&mut IdoAccount,  user_pda: &mut PdaUserStats) 
     let mut round_state_text = String::from("");
     let mut round_timestamp = 0;
     let is_close =  ido_account._is_close();
-    let tier: u8 = if user_pda.allocated  { user_pda.clone().tier_index } else { 0 };
+    let tier: u8 = if user_pda.allocated  { user_pda.clone().tier_index + 1 } else { 0 };
 
     if !is_close {
         let mut ts = ido_account._open_timestamp;

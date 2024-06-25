@@ -129,7 +129,7 @@ pub fn participate_sol(ctx: Context<ParticipateSol>, amount: u64) -> Result<()> 
 
     let (_, round, round_state, _, _) = _info_wallet(ido_account, user_pda);
     msg!("round_state: {}", round_state);
-
+    require!(round >0, IDOProgramErrors::InvalidRounds);
     require!( round_state == 1 || round_state == 3, IDOProgramErrors::ParticipationNotValid);
 
     let allocation_remaining = get_allocation_remaining(ido_account, user_pda, &round);

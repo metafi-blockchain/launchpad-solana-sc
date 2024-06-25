@@ -68,14 +68,6 @@ impl IdoAccount  {
             name: String::from("Top 200"),
             allocated_count: 0,
         });
-        self.add_tier(TierItem {
-            name: String::from("Top 300"),
-            allocated_count: 0,
-        });
-        self.add_tier(TierItem {
-            name: String::from("Top 400"),
-            allocated_count: 0,
-        });
         Ok(())
     }
     pub fn init_rounds(&mut self, allocation_duration: &u32, fcfs_duration: &u32) -> Result<()> {
@@ -162,7 +154,7 @@ impl IdoAccount  {
                 r.class = class.clone();
             }
             None => {
-                return err!(IDOProgramErrors::InvalidInDex);
+                return err!(IDOProgramErrors::InvalidRounds);
             }
         }
         Ok(())
@@ -256,7 +248,7 @@ impl IdoAccount  {
                 }
             }
             None => {
-                return err!(IDOProgramErrors::InvalidInDex);
+                return err!(IDOProgramErrors::InvalidRounds);
             }
         }
         Ok(())

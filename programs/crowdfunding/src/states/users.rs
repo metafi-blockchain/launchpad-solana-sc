@@ -102,7 +102,8 @@ impl PdaUserStats {
 
 
     pub fn get_size(&self)-> usize{
-        return 8 + 32 + 1 + 1 + 1 + 4 + self.participate.len() * 9 + 4 + self.claims.len() * 9;
+        let size = 8 + 32 + 1 + 1 + 1 + 4 + (self.participate.len() + 1) * 9 + 4 + (self.claims.len() + 1 ) * 9;
+        size
     }
    
 

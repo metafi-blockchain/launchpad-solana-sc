@@ -464,60 +464,60 @@ describe("crowd funding testing", () => {
   // })
   
 
-  // it("joinIdo", async () => {
-  //   // const token_raise = "3uWjtg9ZRjGbSzxYx4NgDLBwdFxhPLi9aArN9tiu6m8b";
+  it("joinIdo", async () => {
+    // const token_raise = "3uWjtg9ZRjGbSzxYx4NgDLBwdFxhPLi9aArN9tiu6m8b";
 
-  //   // let idoPDA =  getPdaIdo(program, ido_id);
-
-
-  //   const token_mint = new PublicKey(raise_token_test);
-
-  //   let userPDA =  getPdaUser(program.programId,  idoPDAs, provider.publicKey);
-
-  //   const desAccount = getAssociatedTokenAddressSync(token_mint, idoPDAs, true);
-
-  //   console.log("desAccount: " , desAccount.toString());
-
-  //   const sourceAccount = getAssociatedTokenAddressSync(token_mint, provider.publicKey, true);
-
-  //   // let userPDA =  getPdaUser(program.programId,  idoPDAs, ido_id, provider.publicKey);
-
-  //     try {
-  //       let idoInfo = await program.account.idoAccount.fetch(idoPDAs);
-  //       let userInfo = await program.account.pdaUserStats.fetch(userPDA);
-
-  //       // const infoWallet = getAllocationRemaining(1, userInfo.tierIndex, <IdoAccount><unknown>idoInfo ,  userInfo)
-
-  //       // console.log(JSON.stringify(infoWallet));
+    // let idoPDA =  getPdaIdo(program, ido_id);
 
 
-  //       //   console.log((tokenAccountInfo.value?.data).parsed.info.tokenAmount.amount);
-  //       let amount = new BN(3 * LAMPORTS_PER_SOL);
-  //       let tx = await program.methods
-  //         .participate(amount).accounts({
-  //           idoAccount: idoPDAs,
-  //           userPdaAccount: userPDA,
-  //           user: provider.publicKey,
-  //           userTokenAccount: sourceAccount,
-  //           idoTokenAccount: desAccount,
-  //           tokenProgram: TOKEN_PROGRAM_ID,
-  //           systemProgram: anchor.web3.SystemProgram.programId
-  //         })
-  //         .rpc();
-  //       console.log("joinIDO success at tx: ", tx);
-  //     } catch (error) {
-  //       console.log(error);
+    const token_mint = new PublicKey(raise_token_test);
+
+    let userPDA =  getPdaUser(program.programId,  idoPDAs, provider.publicKey);
+
+    const desAccount = getAssociatedTokenAddressSync(token_mint, idoPDAs, true);
+
+    console.log("desAccount: " , desAccount.toString());
+
+    const sourceAccount = getAssociatedTokenAddressSync(token_mint, provider.publicKey, true);
+
+    // let userPDA =  getPdaUser(program.programId,  idoPDAs, ido_id, provider.publicKey);
+
+      try {
+        let idoInfo = await program.account.idoAccount.fetch(idoPDAs);
+        let userInfo = await program.account.pdaUserStats.fetch(userPDA);
+
+        // const infoWallet = getAllocationRemaining(1, userInfo.tierIndex, <IdoAccount><unknown>idoInfo ,  userInfo)
+
+        // console.log(JSON.stringify(infoWallet));
 
 
-  //     }
-  //     let _userInfo = await program.account.pdaUserStats.fetch(userPDA);
-  //     const _idoInfo = await program.account.idoAccount.fetch(idoPDAs);
+        //   console.log((tokenAccountInfo.value?.data).parsed.info.tokenAmount.amount);
+        let amount = new BN(3 * LAMPORTS_PER_SOL);
+        let tx = await program.methods
+          .participate(amount).accounts({
+            idoAccount: idoPDAs,
+            userPdaAccount: userPDA,
+            user: provider.publicKey,
+            userTokenAccount: sourceAccount,
+            idoTokenAccount: desAccount,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: anchor.web3.SystemProgram.programId
+          })
+          .rpc();
+        console.log("joinIDO success at tx: ", tx);
+      } catch (error) {
+        console.log(error);
 
-  //     // const userInfo = await getInfoIdoAccount(program, userPDA.toString());
-  //     console.log(JSON.stringify(_userInfo));
-  //     console.log(JSON.stringify(_idoInfo));
 
-  // });
+      }
+      let _userInfo = await program.account.pdaUserStats.fetch(userPDA);
+      const _idoInfo = await program.account.idoAccount.fetch(idoPDAs);
+
+      // const userInfo = await getInfoIdoAccount(program, userPDA.toString());
+      console.log(JSON.stringify(_userInfo));
+      console.log(JSON.stringify(_idoInfo));
+
+  });
 
   // test modify tier
   // it("modify tier", async () => {

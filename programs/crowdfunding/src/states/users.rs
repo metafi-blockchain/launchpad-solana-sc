@@ -1,3 +1,5 @@
+use std::ops::Sub;
+
 use anchor_lang::prelude::*;
 use solana_safe_math::SafeMath;
 
@@ -36,16 +38,19 @@ impl PdaUserStats {
     }
 
 
-    pub fn user_participate(&mut self, index: u8, participate_amount: u64) -> Result<()> {
-        match self.participate.get_mut(index as usize) {
-            Some(p) => {
+    pub fn user_participate(&mut self, round: u8, participate_amount: u64) -> Result<()> {
+        let round_index  =  round.sub(1);
+        if self.participate.len() == 0 {
+            self.participate.push(ParticipateItem {
+                round: round_index,
+                amount: participate_amount,
+            });
+            return Ok(());
+        }
+        for p in self.participate.iter_mut() {
+            if p.round == round_index {
                 p.amount = p.amount.safe_add(participate_amount).unwrap();
-            }
-            None => {
-                self.participate.push(ParticipateItem {
-                    round: index,
-                    amount: participate_amount,
-                });
+                return Ok(());
             }
         }
         Ok(())
@@ -102,7 +107,8 @@ impl PdaUserStats {
 
 
     pub fn get_size(&self)-> usize{
-        let size = 8 + 32 + 1 + 1 + 1 + 4 + (self.participate.len() + 1) * 9 + 4 + (self.claims.len() + 1 ) * 9;
+        let size = 8 + 65  + self.claims.len()  * 9;
+        msg!("size: {}", size);
         size
     }
    

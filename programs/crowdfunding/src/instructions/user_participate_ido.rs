@@ -13,9 +13,6 @@ pub struct Participate<'info> {
     pub ido_account: Box<Account<'info, IdoAccount>>,
 
     #[account(mut, 
-        realloc = user_pda_account.get_size() + 9,
-        realloc::zero = false,
-        realloc::payer = user,
         constraint = user_pda_account.address == user.key(),
         constraint = user_pda_account.allocated == true,
         seeds = [AUTHORITY_USER,ido_account.key().as_ref(), user.key().as_ref()], bump = user_pda_account.bump)]
@@ -108,9 +105,6 @@ pub struct ParticipateSol<'info> {
     pub ido_account: Box<Account<'info, IdoAccount>>,
 
     #[account(mut, 
-        realloc = user_pda_account.get_size() + 9,
-        realloc::zero = false,
-        realloc::payer = user,
         constraint = user_pda_account.allocated == true,
         constraint = user_pda_account.address == user.key(),
         seeds = [AUTHORITY_USER,ido_account.key().as_ref(), user.key().as_ref()], bump = user_pda_account.bump)]

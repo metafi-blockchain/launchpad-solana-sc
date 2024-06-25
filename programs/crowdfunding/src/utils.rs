@@ -179,11 +179,13 @@ pub fn get_allocation_remaining(ido_account:&mut IdoAccount, user_pda: &PdaUserS
     let _tier_index = tier;
     let rounds = ido_account._rounds.clone();
     
+    msg!("round_index: {}",round_index);
 
     if user_pda.allocated {
         match rounds.get(round_index) {
             Some(round) => {
                 let participated = user_pda.get_amount_participate_round(round_index as u8).unwrap();
+                msg!("participated: {}",participated);
                 let allocated = round.get_tier_allocation(_tier_index);
                 msg!("allocated: {}",allocated);
                 if participated < allocated {

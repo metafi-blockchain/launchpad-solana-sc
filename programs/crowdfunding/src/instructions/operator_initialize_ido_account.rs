@@ -72,6 +72,72 @@ pub fn handle_initialize_ido(
         &ido_id,
         &ctx.bumps.ido_account,
     )?;
-    msg!("Create account success!");
+    msg!("Create ido success!");
+    Ok(())
+}
+
+
+
+#[derive(Accounts)]
+#[instruction(
+   param: InitializeIdoParam
+)]
+pub struct InitializeIdoNative<'info> {
+
+    #[account(
+        seeds = [ONEPAD],
+        bump = onepad_pda.bump,
+        constraint = onepad_pda.has_operator(operator_pda.key())@ IDOProgramErrors::OnlyOperatorAllowed,
+    )]
+    pub onepad_pda: Box<Account<'info, OnePad>>,
+    #[account(init,  
+        payer = authority,  space = 8 + 2442,  
+        seeds = [AUTHORITY_IDO , param.ido_id.to_le_bytes().as_ref()], bump)]
+    pub ido_account: Box<Account<'info, IdoAccount>>,
+    #[account(
+        seeds = [OPERATOR_ROLE, authority.key().as_ref()],
+        bump = operator_pda.bump,
+        constraint = operator_pda.has_authority(authority.key(), AuthRole::Operator ) == true @ IDOProgramErrors::OnlyOperatorAllowed,
+    )]
+    pub operator_pda: Account<'info, AuthorityRole>,
+    #[account(mut, signer)]
+    pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+
+pub fn handle_initialize_ido_native(
+    ctx: Context<InitializeIdoNative>,
+    params: InitializeIdoParam
+) -> Result<()> {
+
+    let ido_account = &mut ctx.accounts.ido_account;
+    
+    let operator_pda = &ctx.accounts.operator_pda;
+    
+    let InitializeIdoParam {
+        raise_token,
+        rate,
+        open_timestamp,
+        allocation_duration,
+        fcfs_duration,
+        cap,
+        ido_id,
+    } = params;
+
+    let decimal = 9;
+    ido_account.create_ido(
+        &operator_pda.key(),
+        &raise_token,
+        &decimal,
+        &rate,
+        &open_timestamp,
+        &allocation_duration,
+        &fcfs_duration,
+        &cap,
+        &ido_id,
+        &ctx.bumps.ido_account,
+    )?;
+    msg!("Create ido success!");
     Ok(())
 }

@@ -40,18 +40,18 @@ impl PdaUserStats {
 
     pub fn user_participate(&mut self, round: u8, participate_amount: u64) -> Result<()> {
         let round_index  =  round.sub(1);
-        if self.participate.len() == 0 {
-            self.participate.push(ParticipateItem {
-                round: round_index,
-                amount: participate_amount,
-            });
-            return Ok(());
-        }
-        for p in self.participate.iter_mut() {
-            if p.round == round_index {
-                p.amount = p.amount.safe_add(participate_amount).unwrap();
-                return Ok(());
+        match self.participate.get_mut(round_index as usize) {
+            Some(p) => {
+                msg!("participate_amount: {}", p.amount);
+                self.participate[round_index as usize].amount = p.amount.safe_add(participate_amount).unwrap();
             }
+            None => {
+                self.participate.push(ParticipateItem {
+                    round: round_index,
+                    amount: participate_amount,
+                });
+            }
+            
         }
         Ok(())
     }
@@ -107,7 +107,7 @@ impl PdaUserStats {
 
 
     pub fn get_size(&self)-> usize{
-        let size = 8 + 65  + self.claims.len()  * 9;
+        let size = 8 + 75  + self.claims.len()  * 9;
         msg!("size: {}", size);
         size
     }

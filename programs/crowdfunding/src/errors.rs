@@ -31,8 +31,6 @@ pub enum IDOProgramErrors {
     #[msg("User token account not match")]
     UserTokenAccountNotMatch,
     #[msg("Admin token account not match")]
-    WithdrawTokenAccountNotMatch,
-    #[msg("Release token account of user not match")]
     ReleaseTokenAccountNotMatch,
     #[msg("Cannot parse data to account")]
     CannotParseData,
@@ -61,6 +59,9 @@ pub enum IDOProgramErrors {
 
     #[msg("Address Zero")]
     AddressZero,
+
+    #[msg("Operator wallet not match")]
+    OperatorWalletNotMatch,
 
 }
 

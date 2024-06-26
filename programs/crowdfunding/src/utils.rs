@@ -75,10 +75,10 @@ pub fn _get_allocation(
                 remaining = claimable.safe_sub(claimed).unwrap();
             }   
             msg!("remaining: {}",remaining);
+            let balance_ido_token = release_token_account.amount;
 
-            let native_token_pub = Pubkey::default();
             // //check _release_token is equal publich key 1nc1nerator11111111111111111111111111111111
-            if ido_account._release_token != native_token_pub {
+            if ido_account._release_token.to_string() != Pubkey::default().to_string() {
                 if from_timestamp == 0 || now_ts > from_timestamp {
                     status = 1;
 
@@ -86,8 +86,7 @@ pub fn _get_allocation(
                     if release_token_account.amount == 0 {
                         status = 2;
                     }
-                    //check balance release pair token account > 0  //doing
-                    if remaining == 0 {
+                    if remaining == 0 || remaining > balance_ido_token {
                         status = 2;
                     }  
                 }

@@ -7,7 +7,7 @@ use crate::{ types::SetupUserTierAllocationParam, AuthRole, AuthorityRole, IDOPr
 #[instruction(
     params: SetupUserTierAllocationParam)]
 pub struct ModifyTierAllocatedOne<'info> {
-    #[account( init_if_needed, payer = authority, space = 8 + 65 , 
+    #[account( init_if_needed, payer = authority, space = 8 + 75 , 
         seeds = [AUTHORITY_USER, ido_account.key().as_ref(), params.address.as_ref()], bump)]
     pub user_ido_account: Box<Account<'info, PdaUserStats>>,
     #[account(mut,

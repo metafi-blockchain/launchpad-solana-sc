@@ -42,6 +42,13 @@ pub mod crowdfunding {
     ) -> Result<()> {
         instructions::handle_initialize_ido(ctx, params)
     }
+
+    pub fn initialize_ido_native(
+        ctx: Context<InitializeIdoNative>,
+        params: InitializeIdoParam
+    ) -> Result<()> {
+        instructions::handle_initialize_ido_native(ctx, params)
+    }
     pub fn admin_add_operator( ctx: Context<AddOperator>, new_operator: Pubkey) -> Result<()> {
         instructions::handle_add_operator(ctx, new_operator)
     }
@@ -119,9 +126,9 @@ pub mod crowdfunding {
 
     // transferNativeToken
     // with draw token from pda of admin
-    pub fn withdraw_native_token( ctx: Context<TransferNativeToken>, amount: u64, _to: Pubkey,
+    pub fn withdraw_native_token( ctx: Context<TransferNativeToken>, amount: u64,
     ) -> Result<()> {
-        instructions::withdraw_native_token(ctx, amount, _to)
+        instructions::withdraw_native_token(ctx, amount)
     }
 
     //transferToken

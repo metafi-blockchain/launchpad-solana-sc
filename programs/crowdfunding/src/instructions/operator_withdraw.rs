@@ -1,12 +1,19 @@
 
 use anchor_lang::prelude::*;
 use anchor_spl::token::{ Token, TokenAccount, Mint};
-use anchor_spl::associated_token::{get_associated_token_address, AssociatedToken};
-use crate::{  AuthRole, AuthorityRole, IDOProgramErrors, IdoAccount, TokenTransferParams, WithdrawTokenEvent, _transfer_token_from_ido, };
+use anchor_spl::associated_token::AssociatedToken;
+use crate::{  AuthRole, AuthorityRole, IDOProgramErrors, IdoAccount, OnePad, TokenTransferParams, WithdrawTokenEvent, _transfer_token_from_ido, ONEPAD };
 
 use crate::{  AUTHORITY_IDO, OPERATOR_ROLE};
 #[derive(Accounts)]
 pub struct WithdrawTokenFromPda<'info> {
+    #[account(
+        seeds = [ONEPAD],
+        bump = onepad_pda.bump,
+        constraint = onepad_pda.has_operator(operator_pda.key())@ IDOProgramErrors::OnlyOperatorAllowed,
+        constraint = onepad_pda.operator_wallet== operator_wallet.key() @ IDOProgramErrors::OperatorWalletNotMatch,
+    )]
+    pub onepad_pda: Box<Account<'info, OnePad>>,
     #[account(mut,
         constraint = ido_account.authority == operator_pda.key(),
         seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump)]
@@ -36,6 +43,14 @@ pub struct WithdrawTokenFromPda<'info> {
 
 #[derive(Accounts)]
 pub struct TransferNativeToken<'info> {
+    #[account(
+        seeds = [ONEPAD],
+        bump = onepad_pda.bump,
+        constraint = onepad_pda.has_operator(operator_pda.key())@ IDOProgramErrors::OnlyOperatorAllowed,
+      
+    )]
+    pub onepad_pda: Box<Account<'info, OnePad>>,
+
     #[account(mut,
         constraint = ido_account.authority == operator_pda.key(),
         seeds = [AUTHORITY_IDO, ido_account.ido_id.to_le_bytes().as_ref()], bump)]
@@ -46,6 +61,10 @@ pub struct TransferNativeToken<'info> {
         constraint = operator_pda.has_authority(authority.key(), AuthRole::Operator ) == true @ IDOProgramErrors::OnlyOperatorAllowed,
     )]
     pub operator_pda: Account<'info, AuthorityRole>,
+    #[account(
+        mut,
+        constraint = onepad_pda.operator_wallet== operator_wallet.key() @ IDOProgramErrors::OperatorWalletNotMatch,
+    )]
     ///CHECK:: only check operator wallet
     pub operator_wallet: AccountInfo<'info>,
     #[account(mut, signer)]
@@ -56,7 +75,6 @@ pub struct TransferNativeToken<'info> {
 pub fn withdraw_native_token(
     ctx: Context<TransferNativeToken>,
     amount: u64,
-    _to: Pubkey,
 ) -> Result<()> {
     let ido_account = &mut ctx.accounts.ido_account;
     let operator_wallet = &mut ctx.accounts.operator_wallet;
@@ -92,11 +110,6 @@ pub fn withdraw_native_token(
         let ido_token_account = &mut ctx.accounts.from_ata;
         let token_program: &Program<'_, Token> = &ctx.accounts.token_program;
         let ido_account: &Account<'_, IdoAccount> = &ctx.accounts.ido_account;
-
-
-        let _admin_token_address = get_associated_token_address(&ctx.accounts.authority.key(), &ido_account._raise_token);
-        //require admin token account
-        require!(_admin_token_address == destination.key(),  IDOProgramErrors::WithdrawTokenAccountNotMatch);
 
         let ido_id = ido_account.ido_id.to_le_bytes();
         let seeds: &[&[u8]] = &[AUTHORITY_IDO, ido_id.as_ref(), &[ctx.accounts.ido_account.bump]];

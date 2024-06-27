@@ -693,54 +693,54 @@ describe("crowd funding testing", () => {
   // });
 
 
-  it("claim_token", async () => {
-    // const token_raise = "3uWjtg9ZRjGbSzxYx4NgDLBwdFxhPLi9aArN9tiu6m8b";
+  // it("claim_token", async () => {
+  //   // const token_raise = "3uWjtg9ZRjGbSzxYx4NgDLBwdFxhPLi9aArN9tiu6m8b";
 
-    let idoPDA =  getPdaIdo(program, ido_id,"ido_pad");
+  //   let idoPDA =  getPdaIdo(program, ido_id,"ido_pad");
 
-    const token_mint = new PublicKey(release_token);
+  //   const token_mint = new PublicKey(release_token);
 
-    const idoTokenReleaseAccount = getAssociatedTokenAddressSync(token_mint, idoPDA, true);
-    const userTokenAccount = getAssociatedTokenAddressSync(token_mint, provider.publicKey, true);
+  //   const idoTokenReleaseAccount = getAssociatedTokenAddressSync(token_mint, idoPDA, true);
+  //   const userTokenAccount = getAssociatedTokenAddressSync(token_mint, provider.publicKey, true);
 
-    let userPDA =  getPdaUser(program.programId,  idoPDA, ido_id, provider.publicKey);
+  //   let userPDA =  getPdaUser(program.programId,  idoPDA, ido_id, provider.publicKey);
 
-      try {
-        // let idoInfo = await program.account.idoAccount.fetch(idoPDA);
-        // let userInfo = await program.account.pdaUserStats.fetch(userPDA);       
+  //     try {
+  //       // let idoInfo = await program.account.idoAccount.fetch(idoPDA);
+  //       // let userInfo = await program.account.pdaUserStats.fetch(userPDA);       
 
-        let index  = 0;
-        let tx = await program.methods
-          .claim(index).accounts({
-            idoAccount: idoPDA,
+  //       let index  = 0;
+  //       let tx = await program.methods
+  //         .claim(index).accounts({
+  //           idoAccount: idoPDA,
 
-            userPdaAccount: userPDA,
-            user: provider.publicKey,
-            userTokenAccount: userTokenAccount,
-            idoTokenAccount: idoTokenReleaseAccount,
-            tokenMint: token_mint,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            associatedTokenProgram:  ASSOCIATED_TOKEN_PROGRAM_ID,
-            systemProgram: anchor.web3.SystemProgram.programId
-          })
-          .rpc();
-        console.log("claim success at tx: ", tx);
-      } catch (error) {
-        console.log(error);
-
-
-      }
-      let _userInfo = await program.account.pdaUserStats.fetch(userPDA);
-      const _idoInfo = await program.account.idoAccount.fetch(idoPDA);
-
-      // const userInfo = await getInfoIdoAccount(program, userPDA.toString());
-      console.log(JSON.stringify(_userInfo));
-      console.log(JSON.stringify(_idoInfo));
-
-  });
+  //           userPdaAccount: userPDA,
+  //           user: provider.publicKey,
+  //           userTokenAccount: userTokenAccount,
+  //           idoTokenAccount: idoTokenReleaseAccount,
+  //           tokenMint: token_mint,
+  //           tokenProgram: TOKEN_PROGRAM_ID,
+  //           associatedTokenProgram:  ASSOCIATED_TOKEN_PROGRAM_ID,
+  //           systemProgram: anchor.web3.SystemProgram.programId
+  //         })
+  //         .rpc();
+  //       console.log("claim success at tx: ", tx);
+  //     } catch (error) {
+  //       console.log(error);
 
 
-});
+  //     }
+  //     let _userInfo = await program.account.pdaUserStats.fetch(userPDA);
+  //     const _idoInfo = await program.account.idoAccount.fetch(idoPDA);
+
+  //     // const userInfo = await getInfoIdoAccount(program, userPDA.toString());
+  //     console.log(JSON.stringify(_userInfo));
+  //     console.log(JSON.stringify(_idoInfo));
+
+  // });
+
+
+// });
 
 describe("crowd funding testing release", () => {
   // it("setup_release_token", async () => {

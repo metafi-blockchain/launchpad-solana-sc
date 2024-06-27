@@ -168,8 +168,9 @@ pub fn _info_wallet<'a>( ido_account:&'a IdoAccount,  user_pda: &'a  PdaUserStat
 pub fn get_allocation_remaining<'a>(ido_account: &'a IdoAccount, user_pda:  &'a PdaUserStats ,round: &u8 ) -> u64 {
 
     let tier =  user_pda.tier_index;
+    msg!("round_index: {}",tier);
     // msg!("tier user {} ",tier );
-    if *round == 0 || tier == 0 {
+    if *round == 0  {
         return 0;
     }
    
@@ -177,7 +178,7 @@ pub fn get_allocation_remaining<'a>(ido_account: &'a IdoAccount, user_pda:  &'a 
     let round_index = round.sub(1) as usize;
     let _tier_index = tier;
     let rounds = &ido_account._rounds;
-    
+    msg!("round_index: {}",round_index);
     if user_pda.allocated {
         match rounds.get(round_index) {
             Some(round) => {

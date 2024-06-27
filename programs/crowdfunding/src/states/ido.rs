@@ -39,7 +39,7 @@ impl IdoAccount  {
         ido_id: &u64,
         bump: &u8,
     ) -> Result<()> {
-        self._raise_token = raise_token.clone();
+        self._raise_token = *raise_token;
         self._raise_token_decimals = *decimals;
         self._rate = *rate;
         self._open_timestamp = *open_timestamp;
@@ -142,16 +142,16 @@ impl IdoAccount  {
 
     pub fn modify_round(
         &mut self,
-        index: &i32,
-        name: &String,
-        duration_seconds: &u32,
-        class: &RoundClass,
+        index: i32,
+        name: String,
+        duration_seconds: u32,
+        class: RoundClass,
     ) -> Result<()> {
-        match self._rounds.get_mut(*index as usize) {
+        match self._rounds.get_mut(index as usize) {
             Some(r) => {
-                r.name = name.clone();
-                r.duration_seconds = *duration_seconds;
-                r.class = class.clone();
+                r.name = name;
+                r.duration_seconds = duration_seconds;
+                r.class = class;
             }
             None => {
                 return err!(IDOProgramErrors::InvalidRounds);
@@ -187,7 +187,7 @@ impl IdoAccount  {
     }
 
     pub fn set_open_timestamp(&mut self, open_timestamps: &i64) -> Result<()> {
-        self._open_timestamp = open_timestamps.clone();
+        self._open_timestamp = *open_timestamps;
         Ok(())
     }
 
@@ -195,7 +195,7 @@ impl IdoAccount  {
 
     pub fn close_timestamp(&self) -> i64 {
         let mut ts = self._open_timestamp;
-        let rounds = self._rounds.clone();
+        let rounds = &self._rounds;
         for (_, round) in rounds.iter().enumerate() {
             ts = ts.add(round.duration_seconds as i64);
         }
@@ -204,7 +204,7 @@ impl IdoAccount  {
 
     pub fn fcfs_timestamp(&self) -> i64 {
         let mut ts = self._open_timestamp;
-        let rounds = self._rounds.clone();
+        let rounds = &self._rounds;
         for (_, round) in rounds.iter().enumerate() {
             match round.class {
                 RoundClass::FcfsPrepare => {

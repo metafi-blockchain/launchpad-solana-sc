@@ -17,7 +17,7 @@ pub struct RoundItem {
 
 impl RoundItem {
     pub fn get_tier_allocation(&self, index: u8) -> u64 {
-        let tier_allocations = self.tier_allocations.clone();
+        let tier_allocations = &self.tier_allocations;
         match tier_allocations.get(index as usize) {
             Some(&al) => {
                  al

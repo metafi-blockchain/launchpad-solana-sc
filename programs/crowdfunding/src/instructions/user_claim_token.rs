@@ -73,7 +73,7 @@ pub fn claim(ctx: Context<ClaimToken>, index: u8) -> Result<()> {
         let ido_id = ido_account.ido_id.to_le_bytes();
         let seeds: &[&[u8]] = &[AUTHORITY_IDO, ido_id.as_ref(), &[ctx.accounts.ido_account.bump]];
         let signer = &seeds[..];
-        msg!("transfer token from ido to user");
+      
         _transfer_token_from_ido( &TokenTransferParams {
             source: ido_release_token_account.to_account_info(),
             destination: ctx.accounts.user_token_account.to_account_info(),
@@ -84,7 +84,7 @@ pub fn claim(ctx: Context<ClaimToken>, index: u8) -> Result<()> {
         })?;
 
         user_pda.user_claim(i,remaining)?;
-        msg!("claim success ");
+
         //emit ClaimEvent
         emit!(ClaimEvent {
             index: index,

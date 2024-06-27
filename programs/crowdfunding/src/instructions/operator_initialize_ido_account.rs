@@ -138,6 +138,5 @@ pub fn handle_initialize_ido_native(
         &ido_id,
         &ctx.bumps.ido_account,
     )?;
-    msg!("Create ido success!");
     Ok(())
 }

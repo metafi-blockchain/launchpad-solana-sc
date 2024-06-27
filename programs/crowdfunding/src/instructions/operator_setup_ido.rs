@@ -118,7 +118,6 @@ pub fn handle_modify_round_allocations(
     
     match ido_account._rounds.get_mut(round_index as usize) {
         Some(r) => {
-            msg!("round {}", r.name);
            r.set_tier_allocation(tier_allocations)?;
         }
         None => {
@@ -143,10 +142,11 @@ pub fn handle_modify_round(
         class
     } = param;
 
-    ido_account.modify_round( &round_index,
-        &name,
-        &duration_seconds,
-        &class,
+    ido_account.modify_round( 
+        round_index,
+        name,
+        duration_seconds,
+        class,
     )?;
 
     Ok(())

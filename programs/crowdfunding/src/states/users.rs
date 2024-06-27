@@ -108,7 +108,6 @@ impl PdaUserStats {
 
     pub fn get_size(&self)-> usize{
         let size = 8 + 75  + self.claims.len()  * 9;
-        msg!("size: {}", size);
         size
     }
    

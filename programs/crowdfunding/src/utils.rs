@@ -28,7 +28,7 @@ pub fn _get_allocation(
             let participated: u64 = user_pda.get_total_participate().unwrap();
             let raise_decimals: u8 = ido_account._raise_token_decimals;
             let release_decimals: u8 = ido_account._release_token_decimals;
-            msg!("participated: {}",participated);
+            // msg!("participated: {}",participated);
             let mut total: u64 = participated
                 .safe_mul(_rate as u64)
                 .unwrap()
@@ -38,7 +38,7 @@ pub fn _get_allocation(
                 .unwrap()
                 .safe_div(PERCENT_SCALED_DECIMALS)
                 .unwrap();
-            msg!("total: {}",total);
+            // msg!("total: {}",total);
             if raise_decimals > release_decimals {
                 let base: u32 = 10;
                 total = total.safe_div(base.safe_pow(raise_decimals.sub(release_decimals)as u32).unwrap() as u64).unwrap();
@@ -50,7 +50,7 @@ pub fn _get_allocation(
             }
 
             let mut claimable = total;
-            msg!("claimable: {}",claimable);
+            // msg!("claimable: {}",claimable);
             let now_ts = Clock::get().unwrap().unix_timestamp ;
 
             match (to_timestamp > from_timestamp) && (now_ts < to_timestamp)  {
@@ -70,7 +70,7 @@ pub fn _get_allocation(
             }
           
             let claimed = user_pda.get_amount_claim_release_round(index as u8).unwrap(/*None*/);
-            msg!("claimed: {}",claimed);
+            // msg!("claimed: {}",claimed);
             if claimed < claimable {
                 remaining = claimable.safe_sub(claimed).unwrap();
             }   
@@ -103,20 +103,20 @@ pub fn _get_allocation(
             )
         }
         None => {
-            msg!("Invalid release index");
+            // msg!("Invalid release index");
              (0, 0, 0, 0, 0, 0, 0, 0)
         }
     }
 }
 
-pub fn _info_wallet( ido_account:&mut IdoAccount,  user_pda: &mut PdaUserStats) -> (u8, u8, u8, String, i64) {
+pub fn _info_wallet<'a>( ido_account:&'a IdoAccount,  user_pda: &'a  PdaUserStats) -> (u8, u8, u8, String, i64) {
     
     let mut round = 0;
     let mut round_state = 4;
     let mut round_state_text = String::from("");
     let mut round_timestamp = 0;
     let is_close =  ido_account._is_close();
-    let tier: u8 = if user_pda.allocated  { user_pda.clone().tier_index + 1 } else { 0 };
+    let tier: u8 = if user_pda.allocated  { user_pda.tier_index + 1 } else { 0 };
 
     if !is_close {
         let mut ts = ido_account._open_timestamp;
@@ -126,7 +126,7 @@ pub fn _info_wallet( ido_account:&mut IdoAccount,  user_pda: &mut PdaUserStats) 
             round_state_text = String::from("Allocation Round <u>opens</u> in:");
             round_timestamp = ts;
         } else {
-            let rounds = ido_account._rounds.clone();
+            let rounds = &ido_account._rounds;
 
             for (i, _round) in rounds.iter().enumerate() {
                 round = i.add(1);
@@ -165,10 +165,10 @@ pub fn _info_wallet( ido_account:&mut IdoAccount,  user_pda: &mut PdaUserStats) 
     )
 }
 
-pub fn get_allocation_remaining(ido_account:&mut IdoAccount, user_pda: &PdaUserStats ,round: &u8 ) -> u64 {
+pub fn get_allocation_remaining<'a>(ido_account: &'a IdoAccount, user_pda:  &'a PdaUserStats ,round: &u8 ) -> u64 {
 
     let tier =  user_pda.tier_index;
-    msg!("tier user {} ",tier );
+    // msg!("tier user {} ",tier );
     if *round == 0 || tier == 0 {
         return 0;
     }
@@ -176,17 +176,13 @@ pub fn get_allocation_remaining(ido_account:&mut IdoAccount, user_pda: &PdaUserS
 
     let round_index = round.sub(1) as usize;
     let _tier_index = tier;
-    let rounds = ido_account._rounds.clone();
+    let rounds = &ido_account._rounds;
     
-    msg!("round_index: {}",round_index);
-
     if user_pda.allocated {
         match rounds.get(round_index) {
             Some(round) => {
                 let participated = user_pda.get_amount_participate_round(round_index as u8).unwrap();
-                msg!("participated: {}",participated);
                 let allocated = round.get_tier_allocation(_tier_index);
-                msg!("allocated: {}",allocated);
                 if participated < allocated {
                     return allocated.safe_sub(participated).unwrap();
                 }

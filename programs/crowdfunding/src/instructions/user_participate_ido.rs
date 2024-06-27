@@ -62,12 +62,12 @@ pub fn participate(ctx: Context<Participate>, amount: u64) -> Result<()> {
 
         //check amount token of user
         require!(source.amount >= amount, IDOProgramErrors::InsufficientAmount);
-        msg!("Transfer token from user to pda");
+
         // Transfer tokens from uer to pda
         let cpi_accounts = anchor_spl::token::Transfer {
-            from: source.to_account_info().clone(),
-            to: destination.to_account_info().clone(),
-            authority: authority.to_account_info().clone(),
+            from: source.to_account_info(),
+            to: destination.to_account_info(),
+            authority: authority.to_account_info(),
         };
 
         let cpi_program = token_program.to_account_info();
@@ -122,12 +122,12 @@ pub fn participate_sol(ctx: Context<ParticipateSol>, amount: u64) -> Result<()> 
     require!(amount > 0, IDOProgramErrors::InvalidAmount);
 
     let (_, round, round_state, _, _) = _info_wallet(ido_account, user_pda);
-    msg!("round_state: {}", round_state);
+   
     require!(round >0, IDOProgramErrors::InvalidRounds);
     require!( round_state == 1 || round_state == 3, IDOProgramErrors::ParticipationNotValid);
 
     let allocation_remaining = get_allocation_remaining(ido_account, user_pda, &round);
-    msg!("allocation_remaining {}", allocation_remaining);
+  
 
     //check allocation remaining
     require!( allocation_remaining >= amount, IDOProgramErrors::AmountExceedsRemainingAllocation);

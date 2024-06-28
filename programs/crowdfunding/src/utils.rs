@@ -74,7 +74,7 @@ pub fn _get_allocation(
             if claimed < claimable {
                 remaining = claimable.safe_sub(claimed).unwrap();
             }   
-            msg!("remaining: {}",remaining);
+            // msg!("remaining: {}",remaining);
             let balance_ido_token = release_token_account.amount;
 
             // //check _release_token is equal publich key 1nc1nerator11111111111111111111111111111111
@@ -109,22 +109,22 @@ pub fn _get_allocation(
     }
 }
 
-pub fn _info_wallet<'a>( ido_account:&'a IdoAccount,  user_pda: &'a  PdaUserStats) -> (u8, u8, u8, String, i64) {
+pub fn _info_wallet<'a>( ido_account:&'a IdoAccount) -> (u8, u8) {
     
     let mut round = 0;
     let mut round_state = 4;
-    let mut round_state_text = String::from("");
-    let mut round_timestamp = 0;
+
     let is_close =  ido_account._is_close();
-    let tier: u8 = if user_pda.allocated  { user_pda.tier_index + 1 } else { 0 };
+    // let tier: u8 = if user_pda.allocated  { user_pda.tier_index + 1 } else { 0 };
 
     if !is_close {
         let mut ts = ido_account._open_timestamp;
         let now_ts = Clock::get().unwrap().unix_timestamp;
+
         if now_ts < ts {
             round_state = 0;
-            round_state_text = String::from("Allocation Round <u>opens</u> in:");
-            round_timestamp = ts;
+            // round_state_text = String::from("Allocation Round <u>opens</u> in:");
+            // round_timestamp = ts;
         } else {
             let rounds = &ido_account._rounds;
 
@@ -135,19 +135,19 @@ pub fn _info_wallet<'a>( ido_account:&'a IdoAccount,  user_pda: &'a  PdaUserStat
                     match _round.class {
                         RoundClass::Allocation => {
                             round_state = 1;
-                            round_state_text =
-                                String::from("Allocation Round <u>closes</u> in:");
-                            round_timestamp = ts;
+                            // round_state_text =
+                            //     String::from("Allocation Round <u>closes</u> in:");
+                            // round_timestamp = ts;
                         }
                         RoundClass::FcfsPrepare => {
                             round_state = 2;
-                            round_state_text = String::from("FCFS Round <u>opens</u> in:");
-                            round_timestamp = ts;
+                            // round_state_text = String::from("FCFS Round <u>opens</u> in:");
+                            // round_timestamp = ts;
                         }
                         RoundClass::Fcfs => {
                             round_state = 3;
-                            round_state_text = String::from("FCFS Round <u>closes</u> in:");
-                            round_timestamp = ts;
+                            // round_state_text = String::from("FCFS Round <u>closes</u> in:");
+                            // round_timestamp = ts;
                         }
                     }
                     break;
@@ -157,18 +157,15 @@ pub fn _info_wallet<'a>( ido_account:&'a IdoAccount,  user_pda: &'a  PdaUserStat
     }
 
      (
-        tier,
-        round.try_into().unwrap() ,
-        round_state,
-        round_state_text,
-        round_timestamp,
+        round as u8,
+        round_state
     )
 }
 
 pub fn get_allocation_remaining<'a>(ido_account: &'a IdoAccount, user_pda:  &'a PdaUserStats ,round: &u8 ) -> u64 {
 
     let tier =  user_pda.tier_index;
-    msg!("round_index: {}",tier);
+    // msg!("round_index: {}",tier);
     // msg!("tier user {} ",tier );
     if *round == 0  {
         return 0;
@@ -178,7 +175,7 @@ pub fn get_allocation_remaining<'a>(ido_account: &'a IdoAccount, user_pda:  &'a 
     let round_index = round.sub(1) as usize;
     let _tier_index = tier;
     let rounds = &ido_account._rounds;
-    msg!("round_index: {}",round_index);
+
     if user_pda.allocated {
         match rounds.get(round_index) {
             Some(round) => {

@@ -42,7 +42,6 @@ impl PdaUserStats {
         let round_index  =  round.sub(1);
         match self.participate.get_mut(round_index as usize) {
             Some(p) => {
-                msg!("participate_amount: {}", p.amount);
                 self.participate[round_index as usize].amount = p.amount.safe_add(participate_amount).unwrap();
             }
             None => {

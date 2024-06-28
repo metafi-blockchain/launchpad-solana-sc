@@ -142,8 +142,7 @@ pub fn handle_modify_round(
         class
     } = param;
 
-    ido_account.modify_round( 
-        round_index,
+    ido_account.modify_round( round_index,
         name,
         duration_seconds,
         class,

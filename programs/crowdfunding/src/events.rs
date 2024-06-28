@@ -6,12 +6,12 @@ use anchor_lang::prelude::*;
 #[event]
 pub struct ParticipateEvent {
     pub amount: u64,
-    pub address: String,
+    pub address: Pubkey,
 }
 #[event]
 pub struct ClaimEvent {
     pub index: u8,
-    pub address: String,
+    pub address: Pubkey,
     pub claim: u64,
     pub timestamp: i64,
 }
@@ -19,7 +19,7 @@ pub struct ClaimEvent {
 
 pub struct WithdrawTokenEvent {
     pub amount: u64,
-    pub address: String,
+    pub address: Pubkey,
     pub timestamp: i64,
 }
 

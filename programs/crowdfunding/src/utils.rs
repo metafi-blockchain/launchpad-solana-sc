@@ -78,7 +78,7 @@ pub fn _get_allocation(
             let balance_ido_token = release_token_account.amount;
 
             // //check _release_token is equal publich key 1nc1nerator11111111111111111111111111111111
-            if ido_account._release_token.to_string() != Pubkey::default().to_string() {
+            if ido_account._release_token != Pubkey::default() {
                 if from_timestamp == 0 || now_ts > from_timestamp {
                     status = 1;
 

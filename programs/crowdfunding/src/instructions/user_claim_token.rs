@@ -88,7 +88,7 @@ pub fn claim(ctx: Context<ClaimToken>, index: u8) -> Result<()> {
         //emit ClaimEvent
         emit!(ClaimEvent {
             index: index,
-            address: user_pda.address.to_string(),
+            address: user_pda.address,
             claim: remaining,
             timestamp: Clock::get()?.unix_timestamp,
         });

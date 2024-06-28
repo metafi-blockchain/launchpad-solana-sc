@@ -53,7 +53,6 @@ pub fn participate(ctx: Context<Participate>, amount: u64) -> Result<()> {
 
     //if raise token is native token
    
-        
         let destination = &ctx.accounts.ido_token_account;
         let source = &ctx.accounts.user_token_account;
         let token_program = &ctx.accounts.token_program;
@@ -78,7 +77,7 @@ pub fn participate(ctx: Context<Participate>, amount: u64) -> Result<()> {
     //emit event transfer
     emit!(ParticipateEvent {
         amount: amount,
-        address: user.key.to_string(),
+        address: user.key(),
     });
 
     //update participated of contract
@@ -151,7 +150,7 @@ pub fn participate_sol(ctx: Context<ParticipateSol>, amount: u64) -> Result<()> 
     //emit event transfer
     emit!(ParticipateEvent {
         amount: amount,
-        address: user.key.to_string(),
+        address: user.key(),
     });
 
     //update participated of contract

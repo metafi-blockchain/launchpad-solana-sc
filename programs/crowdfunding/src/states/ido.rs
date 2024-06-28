@@ -120,6 +120,7 @@ impl IdoAccount  {
     pub fn set_releases( &mut self, from_timestamps: &Vec<i64>, to_timestamps: &Vec<i64>, percents: &Vec<u16>,) -> Result<()> {
         self._releases = vec![];
         //get info Ido from account address
+        
         for (i, from_timestamp) in from_timestamps.iter().enumerate() {
             self._releases.push(ReleaseItem {
                 from_timestamp: *from_timestamp,
@@ -168,6 +169,10 @@ impl IdoAccount  {
     ) -> Result<()> {
         self._rounds = vec![];
         //push round into ido_account._rounds
+        //using option to check round is exist or not
+
+
+
         for (i, name) in name_list.iter().enumerate() {
             self.add_round(RoundItem {
                 name: name.to_string(),

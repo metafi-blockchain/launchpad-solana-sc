@@ -89,10 +89,11 @@ pub fn withdraw_native_token(
 
     **ido_account.to_account_info().try_borrow_mut_lamports()? -= amount;
     **operator_wallet.to_account_info().try_borrow_mut_lamports()? += amount;
+   
     emit!(WithdrawTokenEvent{
         amount: amount,
         timestamp: Clock::get()?.unix_timestamp,
-        address: operator_wallet.key().to_string(),
+        address: operator_wallet.key(),
     });
     Ok(())
 }
@@ -126,7 +127,7 @@ pub fn withdraw_native_token(
         emit!(WithdrawTokenEvent{
             amount: amount,
             timestamp: Clock::get()?.unix_timestamp,
-            address: destination.key().to_string(),
+            address: destination.key(),
         });
         Ok(())
 
